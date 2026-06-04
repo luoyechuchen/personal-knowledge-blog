@@ -18,12 +18,19 @@ git commit -m "Publish blog update"
 git push`;
 
 function slugify(text) {
-  return text
+  return String(text || "")
+    .normalize("NFKD")
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .replace(/[\u4e00-\u9fa5]/g, "");
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+}
+
+function fallbackSlug(prefix = "post") {
+  return `${prefix}-${Date.now()}`;
 }
 
 async function api(path, options = {}) {
@@ -260,6 +267,7 @@ function PostEditor({ state, refresh, selectedSlug, setSelectedSlug, setPostsVie
     setPost((current) => {
       const next = { ...current, [key]: value };
       if (key === "title" && !current.slug) next.slug = slugify(value);
+      if (key === "slug") next.slug = slugify(value);
       return next;
     });
     setDirty(true);
@@ -270,20 +278,22 @@ function PostEditor({ state, refresh, selectedSlug, setSelectedSlug, setPostsVie
     setMessage(status === "published" ? "发布中..." : "保存中...");
     try {
       if (!post.title.trim()) throw new Error("标题不能为空。");
-      if (!post.slug.trim()) throw new Error("Slug 不能为空。");
+      const slug = slugify(post.slug || post.title) || fallbackSlug("post");
+      const postToSave = { ...post, slug };
       if (existing?.status === "published" && status === "draft" && !confirm("这会把已发布文章移回草稿，并从公开内容区删除。确定继续吗？")) {
         setMessage("已取消");
         return;
       }
-      if (existing?.status === "published" && existing.slug !== post.slug && !confirm("修改已发布文章的 Slug 会改变文章网址。确定继续吗？")) {
+      if (existing?.status === "published" && existing.slug !== slug && !confirm("修改已发布文章的 Slug 会改变文章网址。确定继续吗？")) {
         setMessage("已取消");
         return;
       }
 
       const result = await api("/api/posts", {
         method: "POST",
-        body: JSON.stringify({ ...post, status, originalSlug: existing?.slug || "" })
+        body: JSON.stringify({ ...postToSave, status, originalSlug: existing?.slug || "" })
       });
+      setPost(result.post);
       setSelectedSlug(result.post.slug);
       await refresh();
       setDirty(false);

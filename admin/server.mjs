@@ -1,6 +1,6 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
-import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -18,10 +18,35 @@ function assertSafeSlug(slug) {
   }
 }
 
+function slugify(text) {
+  return String(text || "")
+    .normalize("NFKD")
+    .trim()
+    .toLowerCase()
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+}
+
+function fallbackSlug(prefix = "post") {
+  return `${prefix}-${Date.now()}`;
+}
+
 function safeUploadName(name) {
   const ext = path.extname(name).toLowerCase();
   const base = path.basename(name, ext).toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "");
   return `${base || "image"}-${Date.now()}${ext || ".png"}`;
+}
+
+async function pathExists(target) {
+  try {
+    await access(target);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function readJson(relativePath, fallback) {
@@ -105,6 +130,23 @@ async function cleanupColumnOrders(slug) {
   }
 }
 
+async function uniquePostSlug(slug, originalSlug = "") {
+  const publishedDir = path.join(contentDir, "posts");
+  const draftsDir = path.join(contentDir, "drafts");
+  let next = slug;
+  let index = 2;
+
+  while (
+    next !== originalSlug &&
+    ((await pathExists(path.join(publishedDir, next))) || (await pathExists(path.join(draftsDir, next))))
+  ) {
+    next = `${slug}-${index}`;
+    index += 1;
+  }
+
+  return next;
+}
+
 app.get("/api/state", async (_req, res) => {
   res.json(await readState());
 });
@@ -116,14 +158,16 @@ app.get("/api/health", (_req, res) => {
 app.post("/api/posts", async (req, res) => {
   try {
     const post = req.body;
-    assertSafeSlug(post.slug);
-    const originalSlug = post.originalSlug && post.originalSlug !== post.slug ? String(post.originalSlug) : "";
+    const requestedSlug = slugify(post.slug || post.title) || fallbackSlug("post");
+    const originalSlug = post.originalSlug ? slugify(post.originalSlug) : "";
+    assertSafeSlug(requestedSlug);
     if (originalSlug) assertSafeSlug(originalSlug);
+    const finalSlug = await uniquePostSlug(requestedSlug, originalSlug);
 
     const now = new Date().toISOString().slice(0, 10);
     const meta = {
       title: String(post.title || "").trim(),
-      slug: post.slug,
+      slug: finalSlug,
       summary: String(post.summary || "").trim(),
       status: post.status === "published" ? "published" : "draft",
       column: String(post.column || "").trim(),
@@ -143,7 +187,7 @@ app.post("/api/posts", async (req, res) => {
     await writeFile(path.join(targetDir, "index.md"), String(post.markdown || ""));
     await writeFile(path.join(targetDir, "meta.json"), `${JSON.stringify(meta, null, 2)}\n`);
 
-    if (originalSlug) {
+    if (originalSlug && originalSlug !== meta.slug) {
       await removePostFolder(publishedDir, originalSlug);
       await removePostFolder(draftsDir, originalSlug);
       await cleanupPostOrders(originalSlug);
