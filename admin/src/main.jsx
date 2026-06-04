@@ -11,7 +11,8 @@ const emptyPost = {
   markdown: "# 新文章\n\n"
 };
 
-const publishCommands = `git status
+const publishCommands = `cd /Users/luoyechuchen/Documents/coding
+git status
 git add content public/uploads
 git commit -m "Publish blog update"
 git push`;
@@ -97,7 +98,7 @@ function GitPublishNotice({ visible, message }) {
     <div className="git-notice">
       <div>
         <strong>{message || "有未提交改动"}</strong>
-        <span>本地内容已经变化，需要手动提交并推送后，公开网站才会更新。</span>
+        <span>本地内容已经变化。请另开一个新终端，复制下面命令运行后，公开网站才会更新。</span>
       </div>
       <pre>{publishCommands}</pre>
       <button onClick={copyCommands}>{copied ? "已复制" : "复制提交命令"}</button>
