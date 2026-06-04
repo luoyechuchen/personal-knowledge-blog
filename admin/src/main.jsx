@@ -96,6 +96,16 @@ function moveItem(list, from, to) {
   return copy;
 }
 
+function recentValue(item) {
+  const value = item?.updatedAt || item?.savedAt || item?.createdAt || item?.publishedAt || "";
+  const time = Date.parse(value);
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function sortRecentFirst(items) {
+  return [...items].sort((a, b) => recentValue(b) - recentValue(a));
+}
+
 function GitPublishNotice({ visible, message }) {
   const [copied, setCopied] = useState(false);
   if (!visible) return null;
@@ -548,6 +558,13 @@ function ColumnsManager({ state, refresh, setSection }) {
     }
   }
 
+  function addColumn() {
+    const nextColumn = { name: "新专栏", slug: `column-${Date.now()}`, description: "" };
+    setColumns([nextColumn, ...columns]);
+    setActive(nextColumn.slug);
+    setMessage("已新增专栏，记得保存");
+  }
+
   function updateOrder(from, to) {
     const current = orderedPosts.map((post) => post.slug);
     setOrders({ ...orders, [active]: moveItem(current, from, to) });
@@ -569,6 +586,7 @@ function ColumnsManager({ state, refresh, setSection }) {
         </div>
         <div className="actions">
           <button onClick={() => setSection("posts")}>回到文章</button>
+          <button onClick={addColumn}>新增专栏</button>
           <button onClick={saveColumns}>保存专栏</button>
           <button className="primary" onClick={saveOrder}>保存排序</button>
         </div>
@@ -602,7 +620,6 @@ function ColumnsManager({ state, refresh, setSection }) {
               </div>
             </div>
           ))}
-          <button onClick={() => setColumns([...columns, { name: "新专栏", slug: `column-${columns.length + 1}`, description: "" }])}>新增专栏</button>
         </section>
         <section>
           <h2>{activeColumn?.name || "选择专栏"}</h2>
@@ -635,6 +652,11 @@ function JsonListManager({ title, field, state, refresh, setSection }) {
   const [gitDirty, setGitDirty] = useState(false);
   const keys = field === "library" ? ["title", "author"] : ["title", "author", "url", "source", "note", "savedAt"];
 
+  function addRow() {
+    setRows([Object.fromEntries(keys.map((key) => [key, ""])), ...rows]);
+    setMessage("已新增一行，记得保存");
+  }
+
   async function save() {
     setMessage("保存中...");
     await api(`/${field === "library" ? "api/library" : "api/archive"}`, {
@@ -655,6 +677,7 @@ function JsonListManager({ title, field, state, refresh, setSection }) {
         </div>
         <div className="actions">
           <button onClick={() => setSection("posts")}>回到文章</button>
+          <button onClick={addRow}>新增</button>
           <button className="primary" onClick={save}>保存</button>
         </div>
       </div>
@@ -673,13 +696,12 @@ function JsonListManager({ title, field, state, refresh, setSection }) {
           </div>
         ))}
       </div>
-      <button onClick={() => setRows([...rows, Object.fromEntries(keys.map((key) => [key, ""]))])}>新增</button>
     </main>
   );
 }
 
 function ArchiveManager({ state, refresh, setSection }) {
-  const [rows, setRows] = useState(state.archive);
+  const [rows, setRows] = useState(() => sortRecentFirst(state.archive));
   const [expandedRows, setExpandedRows] = useState(() => new Set());
   const [message, setMessage] = useState("");
   const [gitDirty, setGitDirty] = useState(false);
