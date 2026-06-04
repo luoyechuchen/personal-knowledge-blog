@@ -152,6 +152,26 @@ async function uniquePostSlug(slug, originalSlug = "") {
   return next;
 }
 
+async function clearColumnFromPosts(slug) {
+  for (const relativeBase of ["posts", "drafts"]) {
+    const baseDir = path.join(contentDir, relativeBase);
+    const folders = await readdir(baseDir, { withFileTypes: true }).catch(() => []);
+
+    for (const folder of folders) {
+      if (!folder.isDirectory()) continue;
+
+      const metaPath = path.join(baseDir, folder.name, "meta.json");
+      try {
+        const meta = JSON.parse(await readFile(metaPath, "utf8"));
+        if (meta.column !== slug) continue;
+        await writeFile(metaPath, `${JSON.stringify({ ...meta, column: "" }, null, 2)}\n`);
+      } catch {
+        // Ignore incomplete post folders; readState already follows the same rule.
+      }
+    }
+  }
+}
+
 app.get("/api/state", async (_req, res) => {
   res.json(await readState());
 });
@@ -234,6 +254,25 @@ app.delete("/api/posts/:slug", async (req, res) => {
 app.post("/api/columns", async (req, res) => {
   await writeJson("columns.json", req.body.columns || []);
   res.json({ ok: true });
+});
+
+app.delete("/api/columns/:slug", async (req, res) => {
+  try {
+    const slug = req.params.slug;
+    assertSafeSlug(slug);
+
+    const state = await readState();
+    const column = state.columns.find((item) => item.slug === slug);
+    if (!column) throw new Error("专栏不存在。");
+
+    await writeJson("columns.json", state.columns.filter((item) => item.slug !== slug));
+    await clearColumnFromPosts(slug);
+    await rm(path.join(contentDir, "orders", "columns", `${slug}.json`), { force: true });
+
+    res.json({ ok: true, state: await readState() });
+  } catch (error) {
+    res.status(400).json({ ok: false, message: error.message });
+  }
 });
 
 app.post("/api/archive", async (req, res) => {

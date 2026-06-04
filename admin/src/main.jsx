@@ -498,6 +498,7 @@ function ColumnsManager({ state, refresh, setSection }) {
   const [active, setActive] = useState(state.columns[0]?.slug || "");
   const [dragIndex, setDragIndex] = useState(null);
   const [message, setMessage] = useState("");
+  const [gitDirty, setGitDirty] = useState(false);
   const activeColumn = columns.find((column) => column.slug === active);
   const activePosts = state.posts.filter((post) => post.status === "published" && post.column === active);
   const orderedPosts = useMemo(() => {
@@ -508,16 +509,43 @@ function ColumnsManager({ state, refresh, setSection }) {
 
   async function saveColumns() {
     setMessage("保存中...");
-    await api("/api/columns", { method: "POST", body: JSON.stringify({ columns }) });
-    await refresh();
-    setMessage(`已保存专栏 · ${new Date().toLocaleTimeString()}`);
+    try {
+      await api("/api/columns", { method: "POST", body: JSON.stringify({ columns }) });
+      await refresh();
+      setGitDirty(true);
+      setMessage(`已保存专栏 · ${new Date().toLocaleTimeString()} · 尚未提交 Git`);
+    } catch (error) {
+      setMessage(`保存失败：${error.message}`);
+    }
   }
 
   async function saveOrder() {
     setMessage("保存中...");
-    await api(`/api/orders/columns/${active}`, { method: "POST", body: JSON.stringify({ slugs: orderedPosts.map((post) => post.slug) }) });
-    await refresh();
-    setMessage(`已保存排序 · ${new Date().toLocaleTimeString()}`);
+    try {
+      await api(`/api/orders/columns/${active}`, { method: "POST", body: JSON.stringify({ slugs: orderedPosts.map((post) => post.slug) }) });
+      await refresh();
+      setGitDirty(true);
+      setMessage(`已保存排序 · ${new Date().toLocaleTimeString()} · 尚未提交 Git`);
+    } catch (error) {
+      setMessage(`保存失败：${error.message}`);
+    }
+  }
+
+  async function deleteColumn(column) {
+    if (!confirm(`确认删除专栏「${column.name || column.slug}」？文章不会被删除，只会变成未归类。`)) return;
+    setMessage("删除中...");
+    try {
+      const result = await api(`/api/columns/${column.slug}`, { method: "DELETE" });
+      const nextColumns = result.state.columns;
+      setColumns(nextColumns);
+      setOrders(result.state.orders.columns);
+      setActive((current) => current === column.slug ? nextColumns[0]?.slug || "" : current);
+      await refresh();
+      setGitDirty(true);
+      setMessage(`已删除专栏 · ${new Date().toLocaleTimeString()} · 尚未提交 Git`);
+    } catch (error) {
+      setMessage(`删除失败：${error.message}`);
+    }
   }
 
   function updateOrder(from, to) {
@@ -545,6 +573,7 @@ function ColumnsManager({ state, refresh, setSection }) {
           <button className="primary" onClick={saveOrder}>保存排序</button>
         </div>
       </div>
+      <GitPublishNotice visible={gitDirty} message="专栏有未提交改动" />
       <div className="split">
         <section>
           {columns.map((column, index) => (
@@ -567,7 +596,10 @@ function ColumnsManager({ state, refresh, setSection }) {
                 setColumns(next);
                 setMessage("有未保存专栏修改");
               }} />
-              <button onClick={() => setActive(column.slug)}>{active === column.slug ? "正在排序" : "排序此专栏"}</button>
+              <div className="row-actions">
+                <button onClick={() => setActive(column.slug)}>{active === column.slug ? "正在排序" : "排序此专栏"}</button>
+                <button className="danger" onClick={() => deleteColumn(column)}>删除专栏</button>
+              </div>
             </div>
           ))}
           <button onClick={() => setColumns([...columns, { name: "新专栏", slug: `column-${columns.length + 1}`, description: "" }])}>新增专栏</button>
