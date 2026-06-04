@@ -9,7 +9,7 @@ const emptyPost = {
   summary: "",
   status: "draft",
   column: "",
-  markdown: "# 新文章\n\n"
+  markdown: ""
 };
 
 const publishCommands = `cd /Users/luoyechuchen/Documents/coding
