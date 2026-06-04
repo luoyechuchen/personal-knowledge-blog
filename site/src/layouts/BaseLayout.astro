@@ -17,12 +17,16 @@ const navItems = [
 ---
 
 <!doctype html>
-<html lang="zh-CN" data-base={base}>
+<html lang="zh-CN" data-base={base} data-theme="night">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
-    <link rel="stylesheet" href={`${withBase("/styles/global.css")}?v=starfield-1`} />
+    <script is:inline>
+      const savedTheme = localStorage.getItem("site-theme");
+      document.documentElement.dataset.theme = savedTheme === "day" ? "day" : "night";
+    </script>
+    <link rel="stylesheet" href={`${withBase("/styles/global.css")}?v=theme-toggle-1`} />
   </head>
   <body>
     <header class="site-header">
@@ -33,6 +37,7 @@ const navItems = [
       <nav class="top-nav" aria-label="顶部导航">
         <a href={withBase("/search/")} class={active === "search" ? "active" : ""}>搜索</a>
         <a href={withBase("/about/")}>关于</a>
+        <button class="theme-toggle" type="button" aria-label="切换日间和夜间模式" data-theme-toggle>日间</button>
       </nav>
     </header>
     <main class="shell">
@@ -45,5 +50,20 @@ const navItems = [
         <slot />
       </section>
     </main>
+    <script is:inline>
+      const toggle = document.querySelector("[data-theme-toggle]");
+      const setThemeLabel = () => {
+        const current = document.documentElement.dataset.theme;
+        if (toggle) toggle.textContent = current === "night" ? "日间" : "夜间";
+      };
+
+      setThemeLabel();
+      toggle?.addEventListener("click", () => {
+        const next = document.documentElement.dataset.theme === "night" ? "day" : "night";
+        document.documentElement.dataset.theme = next;
+        localStorage.setItem("site-theme", next);
+        setThemeLabel();
+      });
+    </script>
   </body>
 </html>
