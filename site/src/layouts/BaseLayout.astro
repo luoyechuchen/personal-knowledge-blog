@@ -30,6 +30,7 @@ const navItems = [
         const root = document.documentElement;
         const currentBuild = root.dataset.buildId;
         const freshnessKey = "__fresh";
+        let checkingFreshness = false;
 
         const cleanFreshnessParam = () => {
           const url = new URL(window.location.href);
@@ -39,25 +40,35 @@ const navItems = [
         };
 
         const refreshIfStale = async () => {
-          if (!currentBuild) return;
-          const base = root.dataset.base || "/";
-          const response = await fetch(`${base}deploy.json?ts=${Date.now()}`, { cache: "no-store" });
-          if (!response.ok) return;
-          const latest = await response.json();
-          if (!latest?.version) return;
+          if (!currentBuild || checkingFreshness) return;
+          checkingFreshness = true;
 
-          if (latest.version === currentBuild) {
-            cleanFreshnessParam();
-            return;
+          try {
+            const base = root.dataset.base || "/";
+            const response = await fetch(`${base}deploy.json?ts=${Date.now()}`, { cache: "no-store" });
+            if (!response.ok) return;
+            const latest = await response.json();
+            if (!latest?.version) return;
+
+            if (latest.version === currentBuild) {
+              cleanFreshnessParam();
+              return;
+            }
+
+            const url = new URL(window.location.href);
+            url.searchParams.set(freshnessKey, `${latest.version}-${Date.now()}`);
+            window.location.replace(url.toString());
+          } finally {
+            checkingFreshness = false;
           }
-
-          const url = new URL(window.location.href);
-          if (url.searchParams.get(freshnessKey) === latest.version) return;
-          url.searchParams.set(freshnessKey, latest.version);
-          window.location.replace(url.toString());
         };
 
         refreshIfStale().catch(() => {});
+        window.setInterval(() => refreshIfStale().catch(() => {}), 30000);
+        window.addEventListener("focus", () => refreshIfStale().catch(() => {}));
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden) refreshIfStale().catch(() => {});
+        });
       })();
 
       const savedTheme = localStorage.getItem("site-theme");
