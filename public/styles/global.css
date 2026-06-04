@@ -193,11 +193,14 @@ h1 {
 .segmented a {
   padding: 5px 12px;
   color: var(--muted);
+  border: 1px solid transparent;
 }
 
 .segmented .active {
   background: var(--accent-soft);
   color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  font-weight: 700;
 }
 
 .post-list,

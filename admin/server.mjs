@@ -83,6 +83,28 @@ async function removePostFolder(base, slug) {
   await rm(target, { recursive: true, force: true });
 }
 
+async function removeSlugFromOrder(relativePath, slug) {
+  const order = await readJson(relativePath, []);
+  const next = order.filter((item) => item !== slug);
+  if (next.length !== order.length) {
+    await writeJson(relativePath, next);
+  }
+}
+
+async function cleanupPostOrders(slug) {
+  await removeSlugFromOrder("orders/home-featured.json", slug);
+  await cleanupColumnOrders(slug);
+}
+
+async function cleanupColumnOrders(slug) {
+  const ordersDir = path.join(contentDir, "orders", "columns");
+  const files = await readdir(ordersDir, { withFileTypes: true }).catch(() => []);
+  for (const file of files) {
+    if (!file.isFile() || !file.name.endsWith(".json")) continue;
+    await removeSlugFromOrder(`orders/columns/${file.name}`, slug);
+  }
+}
+
 app.get("/api/state", async (_req, res) => {
   res.json(await readState());
 });
@@ -95,6 +117,8 @@ app.post("/api/posts", async (req, res) => {
   try {
     const post = req.body;
     assertSafeSlug(post.slug);
+    const originalSlug = post.originalSlug && post.originalSlug !== post.slug ? String(post.originalSlug) : "";
+    if (originalSlug) assertSafeSlug(originalSlug);
 
     const now = new Date().toISOString().slice(0, 10);
     const meta = {
@@ -119,15 +143,40 @@ app.post("/api/posts", async (req, res) => {
     await writeFile(path.join(targetDir, "index.md"), String(post.markdown || ""));
     await writeFile(path.join(targetDir, "meta.json"), `${JSON.stringify(meta, null, 2)}\n`);
 
+    if (originalSlug) {
+      await removePostFolder(publishedDir, originalSlug);
+      await removePostFolder(draftsDir, originalSlug);
+      await cleanupPostOrders(originalSlug);
+    }
+
     if (meta.status === "published") {
       await removePostFolder(draftsDir, meta.slug);
+      await cleanupColumnOrders(meta.slug);
       const order = await readJson(`orders/columns/${meta.column}.json`, []);
       if (meta.column && !order.includes(meta.slug)) {
         await writeJson(`orders/columns/${meta.column}.json`, [...order, meta.slug]);
       }
+    } else {
+      await removePostFolder(publishedDir, meta.slug);
+      await cleanupColumnOrders(meta.slug);
     }
 
     res.json({ ok: true, post: { ...meta, markdown: post.markdown || "" } });
+  } catch (error) {
+    res.status(400).json({ ok: false, message: error.message });
+  }
+});
+
+app.delete("/api/posts/:slug", async (req, res) => {
+  try {
+    const slug = req.params.slug;
+    assertSafeSlug(slug);
+
+    await removePostFolder(path.join(contentDir, "posts"), slug);
+    await removePostFolder(path.join(contentDir, "drafts"), slug);
+    await cleanupPostOrders(slug);
+
+    res.json({ ok: true, state: await readState() });
   } catch (error) {
     res.status(400).json({ ok: false, message: error.message });
   }

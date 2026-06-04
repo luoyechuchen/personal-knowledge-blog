@@ -46,6 +46,11 @@ button:disabled {
   color: white;
 }
 
+.danger {
+  border-color: #c99b91;
+  color: #9c2f23;
+}
+
 .admin-shell {
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
@@ -93,6 +98,7 @@ nav .active,
   background: var(--accent-soft);
   border-color: #d8b8a7;
   color: var(--accent);
+  font-weight: 700;
 }
 
 .new-button {
@@ -109,11 +115,18 @@ nav .active,
 }
 
 .doc {
+  display: grid;
+  gap: 2px;
   border: 0;
   background: transparent;
   border-radius: 4px;
   color: var(--ink);
   padding: 6px 8px;
+}
+
+.doc span {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .workspace {
@@ -141,7 +154,37 @@ nav .active,
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+}
+
+.git-notice {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(260px, 1.1fr) auto;
+  align-items: start;
+  gap: 14px;
+  border: 1px solid #ddc3aa;
+  border-radius: 8px;
+  background: #fff7ea;
+  margin-bottom: 16px;
+  padding: 14px;
+}
+
+.git-notice div {
+  display: grid;
+  gap: 3px;
+}
+
+.git-notice span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.git-notice pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .meta-grid {
@@ -224,9 +267,37 @@ nav .active,
   margin-bottom: 12px;
 }
 
+.post-admin-table {
+  border-top: 1px solid var(--line);
+}
+
+.post-admin-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.5fr) 88px 140px 116px minmax(120px, auto);
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
+}
+
+.post-admin-row span {
+  color: var(--muted);
+}
+
+.post-admin-head {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .order-row {
   display: grid;
-  grid-template-columns: 28px 42px minmax(0, 1fr) auto auto;
+  grid-template-columns: 28px 42px minmax(0, 1fr) auto auto auto;
   align-items: center;
   gap: 8px;
   border-bottom: 1px solid var(--line);
@@ -245,6 +316,26 @@ nav .active,
 .data-table {
   display: grid;
   gap: 4px;
+}
+
+.add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+}
+
+.add-row div {
+  display: grid;
+  gap: 2px;
+}
+
+.add-row span,
+.empty-state {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .archive-editor-row {
@@ -281,6 +372,11 @@ nav .active,
   }
 
   .meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .git-notice,
+  .post-admin-row {
     grid-template-columns: 1fr;
   }
 

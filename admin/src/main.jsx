@@ -11,6 +11,11 @@ const emptyPost = {
   markdown: "# 新文章\n\n"
 };
 
+const publishCommands = `git status
+git add content public/uploads
+git commit -m "Publish blog update"
+git push`;
+
 function slugify(text) {
   return text
     .trim()
@@ -28,6 +33,14 @@ async function api(path, options = {}) {
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || "请求失败。");
   return data;
+}
+
+function columnName(columns, slug) {
+  return columns.find((column) => column.slug === slug)?.name || "未归类";
+}
+
+function formatStatus(status) {
+  return status === "published" ? "已发布" : "草稿";
 }
 
 function TextInput({ label, value, onChange, placeholder }) {
@@ -70,15 +83,176 @@ function moveItem(list, from, to) {
   return copy;
 }
 
-function PostEditor({ state, refresh, selectedSlug, setSelectedSlug }) {
+function GitPublishNotice({ visible, message }) {
+  const [copied, setCopied] = useState(false);
+  if (!visible) return null;
+
+  async function copyCommands() {
+    await navigator.clipboard.writeText(publishCommands);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  }
+
+  return (
+    <div className="git-notice">
+      <div>
+        <strong>{message || "有未提交改动"}</strong>
+        <span>本地内容已经变化，需要手动提交并推送后，公开网站才会更新。</span>
+      </div>
+      <pre>{publishCommands}</pre>
+      <button onClick={copyCommands}>{copied ? "已复制" : "复制提交命令"}</button>
+    </div>
+  );
+}
+
+function Sidebar({ state, section, setSection, setPostsView, setSelectedSlug }) {
+  const recent = [...state.posts].slice(0, 8);
+  const navItems = [
+    ["posts", "文章"],
+    ["homeFeatured", "首页推荐"],
+    ["columns", "专栏"],
+    ["archive", "资料存档"],
+    ["library", "图书馆"]
+  ];
+
+  function openSection(nextSection) {
+    setSection(nextSection);
+    if (nextSection === "posts") setPostsView("list");
+  }
+
+  function newPost() {
+    setSection("posts");
+    setSelectedSlug("");
+    setPostsView("editor");
+  }
+
+  function editPost(slug) {
+    setSection("posts");
+    setSelectedSlug(slug);
+    setPostsView("editor");
+  }
+
+  return (
+    <aside className="sidebar">
+      <div className="brand">本地后台<span>写作台</span></div>
+      <nav>
+        {navItems.map(([key, label]) => (
+          <button key={key} className={section === key ? "active" : ""} onClick={() => openSection(key)}>
+            {label}
+          </button>
+        ))}
+      </nav>
+      <button className="new-button" onClick={newPost}>新建文章</button>
+      <h3>最近文章</h3>
+      {recent.map((post) => (
+        <button key={post.slug} className="doc" onClick={() => editPost(post.slug)}>
+          {post.title}
+          <span>{formatStatus(post.status)}</span>
+        </button>
+      ))}
+    </aside>
+  );
+}
+
+function PostsManager({ state, refresh, selectedSlug, setSelectedSlug, postsView, setPostsView }) {
+  const [message, setMessage] = useState("");
+  const [gitDirty, setGitDirty] = useState(false);
+  const posts = [...state.posts].sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
+
+  function editPost(slug) {
+    setSelectedSlug(slug);
+    setPostsView("editor");
+  }
+
+  function newPost() {
+    setSelectedSlug("");
+    setPostsView("editor");
+  }
+
+  async function deletePost(post) {
+    if (!confirm(`确认删除《${post.title || "未命名文章"}》？`)) return;
+    setMessage("删除中...");
+    try {
+      await api(`/api/posts/${post.slug}`, { method: "DELETE" });
+      await refresh();
+      setSelectedSlug("");
+      setPostsView("list");
+      setGitDirty(true);
+      setMessage("已删除文章 · 尚未提交 Git");
+    } catch (error) {
+      setMessage(`删除失败：${error.message}`);
+    }
+  }
+
+  if (postsView === "editor") {
+    return (
+      <PostEditor
+        state={state}
+        refresh={refresh}
+        selectedSlug={selectedSlug}
+        setSelectedSlug={setSelectedSlug}
+        setPostsView={setPostsView}
+        setParentMessage={setMessage}
+        setParentGitDirty={setGitDirty}
+      />
+    );
+  }
+
+  return (
+    <main className="workspace">
+      <div className="toolbar">
+        <div>
+          <strong>文章管理</strong>
+          <span>{message || "管理文章本体；首页推荐和专栏排序在各自页面调整。"}</span>
+        </div>
+        <div className="actions">
+          <button className="primary" onClick={newPost}>新建文章</button>
+        </div>
+      </div>
+
+      <GitPublishNotice visible={gitDirty} message="文章内容有未提交改动" />
+
+      <div className="post-admin-table">
+        <div className="post-admin-row post-admin-head">
+          <span>标题</span>
+          <span>状态</span>
+          <span>专栏</span>
+          <span>更新</span>
+          <span>操作</span>
+        </div>
+        {posts.map((post) => (
+          <div className="post-admin-row" key={`${post.location}-${post.slug}`}>
+            <strong>{post.title}</strong>
+            <span>{formatStatus(post.status)}</span>
+            <span>{columnName(state.columns, post.column)}</span>
+            <span>{post.updatedAt || post.createdAt || "-"}</span>
+            <span className="row-actions">
+              <button onClick={() => editPost(post.slug)}>编辑</button>
+              <button className="danger" onClick={() => deletePost(post)}>删除</button>
+            </span>
+          </div>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+function PostEditor({ state, refresh, selectedSlug, setSelectedSlug, setPostsView, setParentMessage, setParentGitDirty }) {
   const existing = state.posts.find((post) => post.slug === selectedSlug);
+  const isNew = !existing;
   const [post, setPost] = useState(existing || { ...emptyPost, column: state.columns[0]?.slug || "" });
   const [mode, setMode] = useState("edit");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(isNew ? "正在新建文章" : "");
+  const [dirty, setDirty] = useState(false);
+  const [gitDirty, setGitDirty] = useState(false);
 
   useEffect(() => {
-    setPost(existing || { ...emptyPost, column: state.columns[0]?.slug || "" });
+    const nextPost = existing || { ...emptyPost, column: state.columns[0]?.slug || "" };
+    setPost(nextPost);
     setMode("edit");
+    setMessage(existing ? "" : "正在新建文章");
+    setDirty(false);
+    setGitDirty(false);
   }, [selectedSlug, existing, state.columns]);
 
   function update(key, value) {
@@ -87,18 +261,60 @@ function PostEditor({ state, refresh, selectedSlug, setSelectedSlug }) {
       if (key === "title" && !current.slug) next.slug = slugify(value);
       return next;
     });
+    setDirty(true);
+    setMessage("有未保存修改");
   }
 
   async function save(status = post.status) {
-    setMessage("");
-    const payload = { ...post, status };
-    const result = await api("/api/posts", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-    setSelectedSlug(result.post.slug);
-    await refresh();
-    setMessage(status === "published" ? "已发布到 content/posts。" : "已保存到本地草稿。");
+    setMessage(status === "published" ? "发布中..." : "保存中...");
+    try {
+      if (!post.title.trim()) throw new Error("标题不能为空。");
+      if (!post.slug.trim()) throw new Error("Slug 不能为空。");
+      if (existing?.status === "published" && status === "draft" && !confirm("这会把已发布文章移回草稿，并从公开内容区删除。确定继续吗？")) {
+        setMessage("已取消");
+        return;
+      }
+      if (existing?.status === "published" && existing.slug !== post.slug && !confirm("修改已发布文章的 Slug 会改变文章网址。确定继续吗？")) {
+        setMessage("已取消");
+        return;
+      }
+
+      const result = await api("/api/posts", {
+        method: "POST",
+        body: JSON.stringify({ ...post, status, originalSlug: existing?.slug || "" })
+      });
+      setSelectedSlug(result.post.slug);
+      await refresh();
+      setDirty(false);
+      setGitDirty(true);
+      setParentGitDirty(true);
+      const nextMessage = status === "published"
+        ? `已发布到本地内容区 · ${new Date().toLocaleTimeString()} · 尚未提交 Git`
+        : `已保存草稿 · ${new Date().toLocaleTimeString()}`;
+      setMessage(nextMessage);
+      setParentMessage(nextMessage);
+    } catch (error) {
+      setMessage(`${status === "published" ? "发布" : "保存"}失败：${error.message}`);
+    }
+  }
+
+  async function deleteCurrentPost() {
+    if (!existing) {
+      setPostsView("list");
+      return;
+    }
+    if (!confirm(`确认删除《${existing.title || "未命名文章"}》？`)) return;
+    setMessage("删除中...");
+    try {
+      await api(`/api/posts/${existing.slug}`, { method: "DELETE" });
+      await refresh();
+      setSelectedSlug("");
+      setPostsView("list");
+      setParentGitDirty(true);
+      setParentMessage("已删除文章 · 尚未提交 Git");
+    } catch (error) {
+      setMessage(`删除失败：${error.message}`);
+    }
   }
 
   async function onPaste(event) {
@@ -120,15 +336,19 @@ function PostEditor({ state, refresh, selectedSlug, setSelectedSlug }) {
     <main className="workspace">
       <div className="toolbar">
         <div>
-          <strong>文章编辑</strong>
-          <span>{message}</span>
+          <strong>{isNew ? "新建文章" : "编辑文章"}</strong>
+          <span>{message || (dirty ? "有未保存修改" : "编辑 Markdown 正文和发布信息")}</span>
         </div>
         <div className="actions">
+          <button onClick={() => setPostsView("list")}>返回列表</button>
           <button onClick={() => setMode(mode === "edit" ? "preview" : "edit")}>{mode === "edit" ? "预览" : "编辑"}</button>
           <button onClick={() => save("draft")}>保存草稿</button>
-          <button className="primary" onClick={() => save("published")}>发布</button>
+          <button className="primary" onClick={() => save("published")}>发布文章</button>
+          <button className="danger" onClick={deleteCurrentPost}>删除</button>
         </div>
       </div>
+
+      <GitPublishNotice visible={gitDirty} message="文章已改变但尚未提交 Git" />
 
       <div className="meta-grid">
         <TextInput label="标题" value={post.title} onChange={(value) => update("title", value)} />
@@ -161,29 +381,98 @@ function PostEditor({ state, refresh, selectedSlug, setSelectedSlug }) {
   );
 }
 
-function PostsSidebar({ state, selectedSlug, setSelectedSlug, setSection }) {
-  const published = state.posts.filter((post) => post.status === "published");
-  const drafts = state.posts.filter((post) => post.status !== "published");
+function HomeFeaturedManager({ state, refresh, setSection }) {
+  const [order, setOrder] = useState(state.orders.homeFeatured || []);
+  const [dragIndex, setDragIndex] = useState(null);
+  const [message, setMessage] = useState("");
+  const publishedPosts = state.posts.filter((post) => post.status === "published");
+  const postMap = new Map(publishedPosts.map((post) => [post.slug, post]));
+  const featuredPosts = order.map((slug) => postMap.get(slug)).filter(Boolean);
+  const featuredSet = new Set(featuredPosts.map((post) => post.slug));
+  const availablePosts = publishedPosts.filter((post) => !featuredSet.has(post.slug));
+
+  function updateOrder(from, to) {
+    setOrder(moveItem(featuredPosts.map((post) => post.slug), from, to));
+    setMessage("有未保存排序");
+  }
+
+  function dropOrder(to) {
+    if (dragIndex === null || dragIndex === to) return;
+    updateOrder(dragIndex, to);
+    setDragIndex(null);
+  }
+
+  function addPost(slug) {
+    setOrder([...featuredPosts.map((post) => post.slug), slug]);
+    setMessage("有未保存排序");
+  }
+
+  function removePost(slug) {
+    setOrder(featuredPosts.map((post) => post.slug).filter((item) => item !== slug));
+    setMessage("有未保存排序");
+  }
+
+  async function saveOrder() {
+    setMessage("保存中...");
+    await api("/api/orders/home-featured", {
+      method: "POST",
+      body: JSON.stringify({ slugs: featuredPosts.map((post) => post.slug) })
+    });
+    await refresh();
+    setMessage(`已保存首页推荐排序 · ${new Date().toLocaleTimeString()}`);
+  }
 
   return (
-    <aside className="sidebar">
-      <div className="brand">本地后台<span>写作台</span></div>
-      <nav>
-        <button className="active" onClick={() => setSection("posts")}>文章</button>
-        <button onClick={() => setSection("columns")}>专栏</button>
-        <button onClick={() => setSection("archive")}>资料存档</button>
-        <button onClick={() => setSection("library")}>图书馆</button>
-      </nav>
-      <button className="new-button" onClick={() => setSelectedSlug("")}>新建文章</button>
-      <h3>草稿</h3>
-      {drafts.map((post) => (
-        <button key={post.slug} className={selectedSlug === post.slug ? "doc active-doc" : "doc"} onClick={() => setSelectedSlug(post.slug)}>{post.title}</button>
-      ))}
-      <h3>已发布</h3>
-      {published.map((post) => (
-        <button key={post.slug} className={selectedSlug === post.slug ? "doc active-doc" : "doc"} onClick={() => setSelectedSlug(post.slug)}>{post.title}</button>
-      ))}
-    </aside>
+    <main className="workspace">
+      <div className="toolbar">
+        <div>
+          <strong>首页推荐</strong>
+          <span>{message || "这里控制首页“推荐”视图的全局文章顺序，不影响专栏排序。"}</span>
+        </div>
+        <div className="actions">
+          <button onClick={() => setSection("posts")}>回到文章</button>
+          <button className="primary" onClick={saveOrder}>保存排序</button>
+        </div>
+      </div>
+
+      <div className="split">
+        <section>
+          <h2>推荐中</h2>
+          <p className="hint">拖动左侧手柄调整首页推荐顺序。</p>
+          {featuredPosts.length === 0 && <p className="empty-state">暂无推荐文章，前台会回退显示最新文章。</p>}
+          {featuredPosts.map((post, index) => (
+            <div
+              className="order-row"
+              draggable
+              key={post.slug}
+              onDragStart={() => setDragIndex(index)}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={() => dropOrder(index)}
+            >
+              <span className="drag-handle">☰</span>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <strong>{post.title}</strong>
+              <button disabled={index === 0} onClick={() => updateOrder(index, index - 1)}>上移</button>
+              <button disabled={index === featuredPosts.length - 1} onClick={() => updateOrder(index, index + 1)}>下移</button>
+              <button onClick={() => removePost(post.slug)}>移除</button>
+            </div>
+          ))}
+        </section>
+        <section>
+          <h2>未推荐</h2>
+          <p className="hint">添加到推荐不会删除或改变文章本身。</p>
+          {availablePosts.map((post) => (
+            <div className="add-row" key={post.slug}>
+              <div>
+                <strong>{post.title}</strong>
+                <span>{columnName(state.columns, post.column)} · {post.publishedAt || "未发布"}</span>
+              </div>
+              <button onClick={() => addPost(post.slug)}>添加</button>
+            </div>
+          ))}
+        </section>
+      </div>
+    </main>
   );
 }
 
@@ -192,6 +481,7 @@ function ColumnsManager({ state, refresh, setSection }) {
   const [orders, setOrders] = useState(state.orders.columns);
   const [active, setActive] = useState(state.columns[0]?.slug || "");
   const [dragIndex, setDragIndex] = useState(null);
+  const [message, setMessage] = useState("");
   const activeColumn = columns.find((column) => column.slug === active);
   const activePosts = state.posts.filter((post) => post.status === "published" && post.column === active);
   const orderedPosts = useMemo(() => {
@@ -201,18 +491,23 @@ function ColumnsManager({ state, refresh, setSection }) {
   }, [activePosts, orders, active]);
 
   async function saveColumns() {
+    setMessage("保存中...");
     await api("/api/columns", { method: "POST", body: JSON.stringify({ columns }) });
     await refresh();
+    setMessage(`已保存专栏 · ${new Date().toLocaleTimeString()}`);
   }
 
   async function saveOrder() {
+    setMessage("保存中...");
     await api(`/api/orders/columns/${active}`, { method: "POST", body: JSON.stringify({ slugs: orderedPosts.map((post) => post.slug) }) });
     await refresh();
+    setMessage(`已保存排序 · ${new Date().toLocaleTimeString()}`);
   }
 
   function updateOrder(from, to) {
     const current = orderedPosts.map((post) => post.slug);
     setOrders({ ...orders, [active]: moveItem(current, from, to) });
+    setMessage("有未保存排序");
   }
 
   function dropOrder(to) {
@@ -224,7 +519,10 @@ function ColumnsManager({ state, refresh, setSection }) {
   return (
     <main className="workspace">
       <div className="toolbar">
-        <strong>专栏</strong>
+        <div>
+          <strong>专栏</strong>
+          <span>{message || "管理专栏信息和专栏内部阅读顺序。"}</span>
+        </div>
         <div className="actions">
           <button onClick={() => setSection("posts")}>回到文章</button>
           <button onClick={saveColumns}>保存专栏</button>
@@ -239,16 +537,19 @@ function ColumnsManager({ state, refresh, setSection }) {
                 const next = [...columns];
                 next[index] = { ...column, name: value };
                 setColumns(next);
+                setMessage("有未保存专栏修改");
               }} />
               <TextInput label="Slug" value={column.slug} onChange={(value) => {
                 const next = [...columns];
                 next[index] = { ...column, slug: value };
                 setColumns(next);
+                setMessage("有未保存专栏修改");
               }} />
               <TextInput label="描述" value={column.description} onChange={(value) => {
                 const next = [...columns];
                 next[index] = { ...column, description: value };
                 setColumns(next);
+                setMessage("有未保存专栏修改");
               }} />
               <button onClick={() => setActive(column.slug)}>{active === column.slug ? "正在排序" : "排序此专栏"}</button>
             </div>
@@ -282,20 +583,26 @@ function ColumnsManager({ state, refresh, setSection }) {
 
 function JsonListManager({ title, field, state, refresh, setSection }) {
   const [rows, setRows] = useState(state[field]);
+  const [message, setMessage] = useState("");
   const keys = field === "library" ? ["title", "author"] : ["title", "author", "url", "source", "note", "savedAt"];
 
   async function save() {
+    setMessage("保存中...");
     await api(`/${field === "library" ? "api/library" : "api/archive"}`, {
       method: "POST",
       body: JSON.stringify({ [field]: rows })
     });
     await refresh();
+    setMessage(`已保存 · ${new Date().toLocaleTimeString()}`);
   }
 
   return (
     <main className="workspace">
       <div className="toolbar">
-        <strong>{title}</strong>
+        <div>
+          <strong>{title}</strong>
+          <span>{message}</span>
+        </div>
         <div className="actions">
           <button onClick={() => setSection("posts")}>回到文章</button>
           <button className="primary" onClick={save}>保存</button>
@@ -309,6 +616,7 @@ function JsonListManager({ title, field, state, refresh, setSection }) {
                 const next = [...rows];
                 next[rowIndex] = { ...row, [key]: value };
                 setRows(next);
+                setMessage("有未保存修改");
               }} />
             ))}
           </div>
@@ -470,6 +778,7 @@ function ArchiveManager({ state, refresh, setSection }) {
 function App() {
   const [state, setState] = useState(null);
   const [section, setSection] = useState("posts");
+  const [postsView, setPostsView] = useState("list");
   const [selectedSlug, setSelectedSlug] = useState("");
 
   async function refresh() {
@@ -485,8 +794,24 @@ function App() {
 
   return (
     <div className="admin-shell">
-      <PostsSidebar state={state} selectedSlug={selectedSlug} setSelectedSlug={setSelectedSlug} setSection={setSection} />
-      {section === "posts" && <PostEditor state={state} refresh={refresh} selectedSlug={selectedSlug} setSelectedSlug={setSelectedSlug} />}
+      <Sidebar
+        state={state}
+        section={section}
+        setSection={setSection}
+        setPostsView={setPostsView}
+        setSelectedSlug={setSelectedSlug}
+      />
+      {section === "posts" && (
+        <PostsManager
+          state={state}
+          refresh={refresh}
+          selectedSlug={selectedSlug}
+          setSelectedSlug={setSelectedSlug}
+          postsView={postsView}
+          setPostsView={setPostsView}
+        />
+      )}
+      {section === "homeFeatured" && <HomeFeaturedManager state={state} refresh={refresh} setSection={setSection} />}
       {section === "columns" && <ColumnsManager state={state} refresh={refresh} setSection={setSection} />}
       {section === "archive" && <ArchiveManager state={state} refresh={refresh} setSection={setSection} />}
       {section === "library" && <JsonListManager title="图书馆" field="library" state={state} refresh={refresh} setSection={setSection} />}
