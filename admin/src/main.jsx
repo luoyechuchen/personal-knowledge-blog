@@ -106,6 +106,19 @@ function sortRecentFirst(items) {
   return [...items].sort((a, b) => recentValue(b) - recentValue(a));
 }
 
+let columnDraftId = 0;
+
+function attachColumnDraftIds(columns) {
+  return columns.map((column) => ({
+    ...column,
+    _draftId: column._draftId || `column-draft-${columnDraftId += 1}`
+  }));
+}
+
+function cleanColumns(columns) {
+  return columns.map(({ _draftId, ...column }) => column);
+}
+
 function GitPublishNotice({ visible, message }) {
   const [copied, setCopied] = useState(false);
   if (!visible) return null;
@@ -503,7 +516,7 @@ function HomeFeaturedManager({ state, refresh, setSection }) {
 }
 
 function ColumnsManager({ state, refresh, setSection }) {
-  const [columns, setColumns] = useState(state.columns);
+  const [columns, setColumns] = useState(() => attachColumnDraftIds(state.columns));
   const [orders, setOrders] = useState(state.orders.columns);
   const [active, setActive] = useState(state.columns[0]?.slug || "");
   const [dragIndex, setDragIndex] = useState(null);
@@ -520,7 +533,7 @@ function ColumnsManager({ state, refresh, setSection }) {
   async function saveColumns() {
     setMessage("保存中...");
     try {
-      await api("/api/columns", { method: "POST", body: JSON.stringify({ columns }) });
+      await api("/api/columns", { method: "POST", body: JSON.stringify({ columns: cleanColumns(columns) }) });
       await refresh();
       setGitDirty(true);
       setMessage(`已保存专栏 · ${new Date().toLocaleTimeString()} · 尚未提交 Git`);
@@ -546,7 +559,7 @@ function ColumnsManager({ state, refresh, setSection }) {
     setMessage("删除中...");
     try {
       const result = await api(`/api/columns/${column.slug}`, { method: "DELETE" });
-      const nextColumns = result.state.columns;
+      const nextColumns = attachColumnDraftIds(result.state.columns);
       setColumns(nextColumns);
       setOrders(result.state.orders.columns);
       setActive((current) => current === column.slug ? nextColumns[0]?.slug || "" : current);
@@ -559,7 +572,7 @@ function ColumnsManager({ state, refresh, setSection }) {
   }
 
   function addColumn() {
-    const nextColumn = { name: "新专栏", slug: `column-${Date.now()}`, description: "" };
+    const nextColumn = { name: "新专栏", slug: `column-${Date.now()}`, description: "", _draftId: `column-draft-${columnDraftId += 1}` };
     setColumns([nextColumn, ...columns]);
     setActive(nextColumn.slug);
     setMessage("已新增专栏，记得保存");
@@ -595,7 +608,7 @@ function ColumnsManager({ state, refresh, setSection }) {
       <div className="split">
         <section>
           {columns.map((column, index) => (
-            <div className="card" key={column.slug}>
+            <div className="card" key={column._draftId}>
               <TextInput label="名称" value={column.name} onChange={(value) => {
                 const next = [...columns];
                 next[index] = { ...column, name: value };
@@ -604,8 +617,16 @@ function ColumnsManager({ state, refresh, setSection }) {
               }} />
               <TextInput label="Slug" value={column.slug} onChange={(value) => {
                 const next = [...columns];
+                const previousSlug = column.slug;
                 next[index] = { ...column, slug: value };
                 setColumns(next);
+                if (active === previousSlug) setActive(value);
+                setOrders((current) => {
+                  if (!previousSlug || previousSlug === value || !current[previousSlug]) return current;
+                  const nextOrders = { ...current, [value]: current[previousSlug] };
+                  delete nextOrders[previousSlug];
+                  return nextOrders;
+                });
                 setMessage("有未保存专栏修改");
               }} />
               <TextInput label="描述" value={column.description} onChange={(value) => {
