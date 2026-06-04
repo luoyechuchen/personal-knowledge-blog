@@ -16,5 +16,8 @@
     "generate:deploy": "node scripts/generate-deploy-info.mjs",
     "generate:search": "node scripts/generate-search-index.mjs",
     "validate:content": "node scripts/validate-content.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.98.0"
   }
 }
