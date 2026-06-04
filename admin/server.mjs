@@ -87,6 +87,10 @@ app.get("/api/state", async (_req, res) => {
   res.json(await readState());
 });
 
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true });
+});
+
 app.post("/api/posts", async (req, res) => {
   try {
     const post = req.body;
@@ -182,6 +186,11 @@ if (isProduction) {
   app.use(vite.middlewares);
 }
 
-app.listen(4321, "127.0.0.1", () => {
+const server = app.listen(4321, "127.0.0.1", () => {
   console.log("Local admin running at http://127.0.0.1:4321");
+});
+
+server.on("error", (error) => {
+  console.error(error);
+  process.exitCode = 1;
 });
