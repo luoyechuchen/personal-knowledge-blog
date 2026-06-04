@@ -164,6 +164,7 @@ nav .active,
 
 .field input,
 .field select,
+.text-area,
 .editor {
   width: 100%;
   border: 1px solid var(--line);
@@ -171,6 +172,11 @@ nav .active,
   background: var(--panel);
   color: var(--ink);
   padding: 9px 10px;
+}
+
+.text-area {
+  resize: vertical;
+  line-height: 1.6;
 }
 
 .editor {
@@ -241,6 +247,24 @@ nav .active,
   gap: 4px;
 }
 
+.archive-editor-row {
+  display: grid;
+  gap: 8px;
+}
+
+.archive-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.archive-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .loading {
   padding: 32px;
 }
@@ -257,6 +281,10 @@ nav .active,
   }
 
   .meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .archive-fields {
     grid-template-columns: 1fr;
   }
 }

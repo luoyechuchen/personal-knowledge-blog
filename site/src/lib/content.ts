@@ -26,10 +26,12 @@ export type Post = PostMeta & {
 export type ArchiveItem = {
   title: string;
   author: string;
-  url: string;
+  slug?: string;
+  url?: string;
   source: string;
   note: string;
   savedAt: string;
+  contentMarkdown?: string;
 };
 
 export type Book = {
@@ -51,6 +53,11 @@ export async function getColumns(): Promise<Column[]> {
 
 export async function getArchiveItems(): Promise<ArchiveItem[]> {
   return readJson<ArchiveItem[]>("archive.json");
+}
+
+export async function getArchiveItemBySlug(slug: string): Promise<ArchiveItem | undefined> {
+  const items = await getArchiveItems();
+  return items.find((item) => item.slug === slug && item.contentMarkdown);
 }
 
 export async function getBooks(): Promise<Book[]> {

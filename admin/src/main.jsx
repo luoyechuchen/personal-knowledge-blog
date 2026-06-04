@@ -39,6 +39,21 @@ function TextInput({ label, value, onChange, placeholder }) {
   );
 }
 
+function TextAreaInput({ label, value, onChange, placeholder, rows = 7 }) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <textarea
+        className="text-area"
+        rows={rows}
+        value={value || ""}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
+  );
+}
+
 function SelectInput({ label, value, onChange, children }) {
   return (
     <label className="field">
@@ -304,6 +319,154 @@ function JsonListManager({ title, field, state, refresh, setSection }) {
   );
 }
 
+function ArchiveManager({ state, refresh, setSection }) {
+  const [rows, setRows] = useState(state.archive);
+  const [expandedRows, setExpandedRows] = useState(() => new Set());
+  const [message, setMessage] = useState("");
+
+  function updateRow(index, key, value) {
+    const next = [...rows];
+    next[index] = { ...next[index], [key]: value };
+    if (key === "title" && !next[index].slug) {
+      const slug = slugify(value) || `archive-${Date.now()}`;
+      next[index].slug = slug;
+    }
+    setRows(next);
+    setMessage("有未保存修改");
+  }
+
+  function addExternalItem() {
+    setRows([
+      {
+        title: "",
+        author: "",
+        url: "",
+        source: "外部文章",
+        note: "",
+        savedAt: new Date().toISOString().slice(0, 10)
+      },
+      ...rows
+    ]);
+    setMessage("已新增外部链接资料，记得保存");
+  }
+
+  function addMarkdownItem() {
+    const slug = `archive-${Date.now()}`;
+    setRows([
+      {
+        title: "",
+        author: "",
+        slug,
+        url: "",
+        source: "本地原文",
+        note: "",
+        savedAt: new Date().toISOString().slice(0, 10),
+        contentMarkdown: "# 标题\n\n在这里粘贴 Markdown 原文。"
+      },
+      ...rows
+    ]);
+    setExpandedRows(new Set([0]));
+    setMessage("已展开 Markdown 原文框，上传后会生成前台阅读页");
+  }
+
+  function removeRow(index) {
+    if (!confirm(`确认删除《${rows[index].title || "未命名资料"}》？`)) return;
+    setRows(rows.filter((_row, rowIndex) => rowIndex !== index));
+    setMessage("已删除，保存后生效");
+  }
+
+  function toggleMarkdown(index) {
+    const next = new Set(expandedRows);
+    if (next.has(index)) next.delete(index);
+    else next.add(index);
+    setExpandedRows(next);
+  }
+
+  async function save() {
+    setMessage("保存中...");
+    const archive = rows.map((row) => {
+      if (!Object.prototype.hasOwnProperty.call(row, "contentMarkdown")) return row;
+      return {
+        ...row,
+        slug: slugify(row.slug || row.title) || `archive-${Date.now()}`
+      };
+    });
+
+    await api("/api/archive", {
+      method: "POST",
+      body: JSON.stringify({ archive })
+    });
+    setRows(archive);
+    await refresh();
+    setMessage(`已保存 · ${new Date().toLocaleTimeString()}`);
+  }
+
+  return (
+    <main className="workspace">
+      <div className="toolbar">
+        <div>
+          <strong>资料存档</strong>
+          <span>{message}</span>
+        </div>
+        <div className="actions">
+          <button onClick={() => setSection("posts")}>回到文章</button>
+          <button onClick={addExternalItem}>新增链接资料</button>
+          <button onClick={addMarkdownItem}>上传原文资料</button>
+          <button className="primary" onClick={save}>保存资料库</button>
+        </div>
+      </div>
+
+      <div className="data-table">
+        {rows.map((row, rowIndex) => {
+          const hasMarkdown = Object.prototype.hasOwnProperty.call(row, "contentMarkdown");
+          return (
+            <div className="data-row archive-editor-row" key={`${row.slug || row.url || "archive"}-${rowIndex}`}>
+              <div className="archive-row-header">
+                <strong>{row.title || "未命名资料"}</strong>
+                <div className="actions">
+                  <button onClick={() => {
+                    if (!hasMarkdown) updateRow(rowIndex, "contentMarkdown", "# 标题\n\n在这里粘贴 Markdown 原文。");
+                    toggleMarkdown(rowIndex);
+                  }}>
+                    {expandedRows.has(rowIndex) ? "收起原文" : hasMarkdown ? "编辑原文" : "添加原文"}
+                  </button>
+                  <button onClick={() => removeRow(rowIndex)}>删除</button>
+                </div>
+              </div>
+
+              <div className="archive-fields">
+                <TextInput label="标题" value={row.title} onChange={(value) => updateRow(rowIndex, "title", value)} />
+                <TextInput label="作者" value={row.author} onChange={(value) => updateRow(rowIndex, "author", value)} />
+                <TextInput label="Slug" value={row.slug} placeholder="仅本地原文需要" onChange={(value) => updateRow(rowIndex, "slug", value)} />
+                <TextInput label="网址" value={row.url} placeholder="可留空" onChange={(value) => updateRow(rowIndex, "url", value)} />
+                <TextInput label="来源" value={row.source} onChange={(value) => updateRow(rowIndex, "source", value)} />
+                <TextInput label="保存日期" value={row.savedAt} onChange={(value) => updateRow(rowIndex, "savedAt", value)} />
+              </div>
+
+              <TextAreaInput
+                label="备注"
+                rows={3}
+                value={row.note}
+                onChange={(value) => updateRow(rowIndex, "note", value)}
+              />
+
+              {expandedRows.has(rowIndex) && (
+                <TextAreaInput
+                  label="Markdown 原文"
+                  rows={14}
+                  value={row.contentMarkdown}
+                  placeholder="# 标题\n\n在这里粘贴 Markdown 原文。"
+                  onChange={(value) => updateRow(rowIndex, "contentMarkdown", value)}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </main>
+  );
+}
+
 function App() {
   const [state, setState] = useState(null);
   const [section, setSection] = useState("posts");
@@ -325,7 +488,7 @@ function App() {
       <PostsSidebar state={state} selectedSlug={selectedSlug} setSelectedSlug={setSelectedSlug} setSection={setSection} />
       {section === "posts" && <PostEditor state={state} refresh={refresh} selectedSlug={selectedSlug} setSelectedSlug={setSelectedSlug} />}
       {section === "columns" && <ColumnsManager state={state} refresh={refresh} setSection={setSection} />}
-      {section === "archive" && <JsonListManager title="资料存档" field="archive" state={state} refresh={refresh} setSection={setSection} />}
+      {section === "archive" && <ArchiveManager state={state} refresh={refresh} setSection={setSection} />}
       {section === "library" && <JsonListManager title="图书馆" field="library" state={state} refresh={refresh} setSection={setSection} />}
     </div>
   );

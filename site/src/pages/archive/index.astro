@@ -3,6 +3,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 import { getArchiveItems } from "../../lib/content";
 
 const items = await getArchiveItems();
+const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
 ---
 
 <BaseLayout title="资料存档 / 个人博客" active="archive">
@@ -10,12 +11,23 @@ const items = await getArchiveItems();
     <h1>资料存档</h1>
   </div>
   <div class="archive-list">
-    {items.map((item) => (
-      <article class="archive-item">
-        <a href={item.url} class="post-title" target="_blank" rel="noreferrer">{item.title}</a>
-        <div class="meta">{item.author} · {item.source} · {item.savedAt}</div>
-        <p>{item.note}</p>
-      </article>
-    ))}
+    {items.map((item) => {
+      const isLocal = Boolean(item.contentMarkdown && item.slug);
+      const href = isLocal ? `${base}archive/${item.slug}/` : item.url;
+
+      return (
+        <article class="archive-item">
+          {href ? (
+            <a href={href} class="post-title" target={isLocal ? undefined : "_blank"} rel={isLocal ? undefined : "noreferrer"}>{item.title}</a>
+          ) : (
+            <span class="post-title">{item.title}</span>
+          )}
+          <div class="meta">
+            {item.author || "佚名"} · {item.source || (isLocal ? "本地原文" : "资料")} · {item.savedAt || "未记录日期"}
+          </div>
+          <p>{item.note}</p>
+        </article>
+      );
+    })}
   </div>
 </BaseLayout>
