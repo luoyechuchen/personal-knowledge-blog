@@ -14,7 +14,8 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
   <script>
     const input = document.querySelector("#search-input");
     const results = document.querySelector("#search-results");
-    const index = await fetch("/search-index.json").then((response) => response.json()).catch(() => []);
+    const base = document.documentElement.dataset.base || "/";
+    const index = await fetch(`${base}search-index.json`).then((response) => response.json()).catch(() => []);
 
     function excerpt(content, query) {
       const lower = content.toLowerCase();
@@ -23,7 +24,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
       return content.slice(Math.max(0, pos - 30), pos + query.length + 70);
     }
 
-    input?.addEventListener("input", () => {
+    if (input) input.addEventListener("input", () => {
       const query = input.value.trim();
       if (!results) return;
       if (!query) {
@@ -37,7 +38,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
       results.innerHTML = matches.map((item) => `
         <article class="post-item">
-          <a class="post-title" href="${item.path}">${item.title}</a>
+          <a class="post-title" href="${base}${item.path.startsWith("/") ? item.path.slice(1) : item.path}">${item.title}</a>
           <p>${excerpt(item.content, query)}</p>
         </article>
       `).join("");

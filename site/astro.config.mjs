@@ -1,7 +1,8 @@
 import { defineConfig } from "astro/config";
 
 export default defineConfig({
+  base: "/personal-knowledge-blog",
   outDir: "../dist",
   publicDir: "../public",
-  site: "https://example.com"
+  site: "https://luoyechuchen.github.io"
 });

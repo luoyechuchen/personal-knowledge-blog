@@ -12,13 +12,14 @@ const { slug } = Astro.params;
 const posts = await getPublishedPosts();
 const post = await getPostBySlug(slug ?? "");
 const columns = await getColumns();
-const html = post ? renderMarkdown(post.markdown, posts) : "";
+const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+const html = post ? renderMarkdown(post.markdown, posts, base) : "";
 ---
 
 <BaseLayout title={`${post?.title ?? "文章"} / 个人博客`} active="posts">
   {post && (
     <article class="article">
-      <a class="back-link" href="/">返回文章</a>
+      <a class="back-link" href={base}>返回文章</a>
       <h1>{post.title}</h1>
       <div class="meta article-meta">{getColumnName(columns, post.column)} · {post.publishedAt}</div>
       <div class="markdown" set:html={html} />

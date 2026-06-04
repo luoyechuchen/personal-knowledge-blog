@@ -8,14 +8,14 @@ function renderCallouts(html: string) {
   );
 }
 
-function renderInternalLinks(markdown: string, posts: Post[]) {
+function renderInternalLinks(markdown: string, posts: Post[], base: string) {
   const byTitle = new Map(posts.map((post) => [post.title, post]));
 
   return markdown.replace(/\[\[([^|\]]+)(?:\|([^\]]+))?]]/g, (_match, title, alias) => {
     const post = byTitle.get(title.trim());
     const label = (alias ?? title).trim();
     if (!post) return label;
-    return `[${label}](/posts/${post.slug}/)`;
+    return `[${label}](${base}posts/${post.slug}/)`;
   });
 }
 
@@ -25,7 +25,7 @@ const md = new MarkdownIt({
   typographer: true
 });
 
-export function renderMarkdown(markdown: string, posts: Post[]) {
-  const linked = renderInternalLinks(markdown, posts);
+export function renderMarkdown(markdown: string, posts: Post[], base = "/") {
+  const linked = renderInternalLinks(markdown, posts, base);
   return renderCallouts(md.render(linked));
 }
