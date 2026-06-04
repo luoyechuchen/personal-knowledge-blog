@@ -1,0 +1,21 @@
+---
+import type { Column, Post } from "../lib/content";
+import { getColumnName } from "../lib/content";
+
+type Props = {
+  posts: Post[];
+  columns: Column[];
+};
+
+const { posts, columns } = Astro.props;
+---
+
+<div class="post-list">
+  {posts.map((post) => (
+    <article class="post-item">
+      <a href={`/posts/${post.slug}/`} class="post-title">{post.title}</a>
+      <p>{post.summary}</p>
+      <div class="meta">{getColumnName(columns, post.column)} · {post.publishedAt}</div>
+    </article>
+  ))}
+</div>

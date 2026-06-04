@@ -1,0 +1,46 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="搜索 / 个人博客" active="search">
+  <div class="section-heading stack">
+    <h1>搜索</h1>
+    <p>只搜索文章标题和正文。</p>
+  </div>
+  <div class="search-box">
+    <input id="search-input" type="search" placeholder="输入关键词" autocomplete="off" />
+  </div>
+  <div id="search-results" class="post-list"></div>
+  <script>
+    const input = document.querySelector("#search-input");
+    const results = document.querySelector("#search-results");
+    const index = await fetch("/search-index.json").then((response) => response.json()).catch(() => []);
+
+    function excerpt(content, query) {
+      const lower = content.toLowerCase();
+      const pos = lower.indexOf(query.toLowerCase());
+      if (pos < 0) return content.slice(0, 90);
+      return content.slice(Math.max(0, pos - 30), pos + query.length + 70);
+    }
+
+    input?.addEventListener("input", () => {
+      const query = input.value.trim();
+      if (!results) return;
+      if (!query) {
+        results.innerHTML = "";
+        return;
+      }
+
+      const matches = index.filter((item) => {
+        return item.title.includes(query) || item.content.includes(query);
+      });
+
+      results.innerHTML = matches.map((item) => `
+        <article class="post-item">
+          <a class="post-title" href="${item.path}">${item.title}</a>
+          <p>${excerpt(item.content, query)}</p>
+        </article>
+      `).join("");
+    });
+  </script>
+</BaseLayout>

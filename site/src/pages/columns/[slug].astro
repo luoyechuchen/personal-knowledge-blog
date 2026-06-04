@@ -1,0 +1,24 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PostList from "../../components/PostList.astro";
+import { getColumnOrder, getColumns, getPublishedPosts, sortByOrder } from "../../lib/content";
+
+export async function getStaticPaths() {
+  const columns = await getColumns();
+  return columns.map((column) => ({ params: { slug: column.slug } }));
+}
+
+const { slug } = Astro.params;
+const columns = await getColumns();
+const column = columns.find((item) => item.slug === slug);
+const posts = (await getPublishedPosts()).filter((post) => post.column === slug);
+const ordered = sortByOrder(posts, await getColumnOrder(slug ?? ""));
+---
+
+<BaseLayout title={`${column?.name ?? "专栏"} / 个人博客`} active="columns">
+  <div class="section-heading stack">
+    <h1>{column?.name}</h1>
+    <p>{column?.description}</p>
+  </div>
+  <PostList posts={ordered} columns={columns} />
+</BaseLayout>

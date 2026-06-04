@@ -1,0 +1,22 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PostList from "../components/PostList.astro";
+import { getColumns, getHomeFeaturedOrder, getPublishedPosts, sortByNewest, sortByOrder } from "../lib/content";
+
+const sort = Astro.url.searchParams.get("sort") === "featured" ? "featured" : "newest";
+const posts = await getPublishedPosts();
+const columns = await getColumns();
+const featuredOrder = await getHomeFeaturedOrder();
+const displayPosts = sort === "featured" ? sortByOrder(posts, featuredOrder) : sortByNewest(posts);
+---
+
+<BaseLayout title="文章 / 个人博客" active="posts">
+  <div class="section-heading">
+    <h1>最新文章</h1>
+    <div class="segmented">
+      <a href="/" class={sort === "newest" ? "active" : ""}>最新</a>
+      <a href="/?sort=featured" class={sort === "featured" ? "active" : ""}>推荐</a>
+    </div>
+  </div>
+  <PostList posts={displayPosts} columns={columns} />
+</BaseLayout>

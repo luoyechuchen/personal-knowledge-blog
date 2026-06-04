@@ -1,0 +1,24 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getBooks } from "../../lib/content";
+
+const books = await getBooks();
+---
+
+<BaseLayout title="图书馆 / 个人博客" active="library">
+  <div class="section-heading">
+    <h1>图书馆</h1>
+  </div>
+  <div class="table-list">
+    <div class="table-row table-head">
+      <span>书名</span>
+      <span>作者</span>
+    </div>
+    {books.map((book) => (
+      <div class="table-row">
+        <span>{book.title}</span>
+        <span>{book.author}</span>
+      </div>
+    ))}
+  </div>
+</BaseLayout>

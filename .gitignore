@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.astro/
+.vite/
+.npm-cache/
+.env
+.env.*
+
+# Local-only drafts are intentionally not published.
+content/drafts/
+
+# OS/editor noise
+.DS_Store

@@ -1,0 +1,27 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getColumnName, getColumns, getPostBySlug, getPublishedPosts } from "../../lib/content";
+import { renderMarkdown } from "../../lib/markdown";
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+  return posts.map((post) => ({ params: { slug: post.slug } }));
+}
+
+const { slug } = Astro.params;
+const posts = await getPublishedPosts();
+const post = await getPostBySlug(slug ?? "");
+const columns = await getColumns();
+const html = post ? renderMarkdown(post.markdown, posts) : "";
+---
+
+<BaseLayout title={`${post?.title ?? "文章"} / 个人博客`} active="posts">
+  {post && (
+    <article class="article">
+      <a class="back-link" href="/">返回文章</a>
+      <h1>{post.title}</h1>
+      <div class="meta article-meta">{getColumnName(columns, post.column)} · {post.publishedAt}</div>
+      <div class="markdown" set:html={html} />
+    </article>
+  )}
+</BaseLayout>

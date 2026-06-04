@@ -1,0 +1,12 @@
+[
+  {
+    "name": "AI 与编程",
+    "slug": "ai-programming",
+    "description": "关于模型、工具、工程实践和人机协作。"
+  },
+  {
+    "name": "阅读与写作",
+    "slug": "reading-writing",
+    "description": "关于输入、表达和长期思考。"
+  }
+]

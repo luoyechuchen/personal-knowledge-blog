@@ -1,0 +1,26 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getColumns, getPublishedPosts } from "../../lib/content";
+
+const columns = await getColumns();
+const posts = await getPublishedPosts();
+---
+
+<BaseLayout title="专栏 / 个人博客" active="columns">
+  <div class="section-heading">
+    <h1>专栏</h1>
+  </div>
+  <div class="column-list">
+    {columns.map((column) => {
+      const columnPosts = posts.filter((post) => post.column === column.slug);
+      const latest = columnPosts.map((post) => post.publishedAt).sort().at(-1);
+      return (
+        <article class="column-item">
+          <a href={`/columns/${column.slug}/`} class="post-title">{column.name}</a>
+          <p>{column.description}</p>
+          <div class="meta">{columnPosts.length} 篇文章{latest ? ` · 最后更新 ${latest}` : ""}</div>
+        </article>
+      );
+    })}
+  </div>
+</BaseLayout>

@@ -1,0 +1,47 @@
+---
+type Props = {
+  title?: string;
+  active?: "posts" | "columns" | "archive" | "library" | "search";
+};
+
+const { title = "个人博客", active = "posts" } = Astro.props;
+
+const navItems = [
+  { href: "/", label: "文章", key: "posts" },
+  { href: "/columns/", label: "专栏", key: "columns" },
+  { href: "/archive/", label: "资料存档", key: "archive" },
+  { href: "/library/", label: "图书馆", key: "library" }
+];
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <link rel="stylesheet" href="/styles/global.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="identity" href="/">
+        <strong>你的名字</strong>
+        <span>头顶的星空和心中的道德律法，是我所认知的世界，并越发与现实同一</span>
+      </a>
+      <nav class="top-nav" aria-label="顶部导航">
+        <a href="/search/" class={active === "search" ? "active" : ""}>搜索</a>
+        <a href="/about/">关于</a>
+      </nav>
+    </header>
+    <main class="shell">
+      <aside class="side-nav" aria-label="内容视图">
+        {navItems.map((item) => (
+          <a href={item.href} class={active === item.key ? "active" : ""}>{item.label}</a>
+        ))}
+      </aside>
+      <section class="content-panel">
+        <slot />
+      </section>
+    </main>
+  </body>
+</html>

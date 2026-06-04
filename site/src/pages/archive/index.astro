@@ -1,0 +1,21 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getArchiveItems } from "../../lib/content";
+
+const items = await getArchiveItems();
+---
+
+<BaseLayout title="资料存档 / 个人博客" active="archive">
+  <div class="section-heading">
+    <h1>资料存档</h1>
+  </div>
+  <div class="archive-list">
+    {items.map((item) => (
+      <article class="archive-item">
+        <a href={item.url} class="post-title" target="_blank" rel="noreferrer">{item.title}</a>
+        <div class="meta">{item.author} · {item.source} · {item.savedAt}</div>
+        <p>{item.note}</p>
+      </article>
+    ))}
+  </div>
+</BaseLayout>
