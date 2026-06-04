@@ -13,6 +13,23 @@ const app = express();
 
 app.use(express.json({ limit: "12mb" }));
 
+await loadLocalEnv();
+
+async function loadLocalEnv() {
+  try {
+    const text = await readFile(path.join(root, ".env"), "utf8");
+    for (const rawLine of text.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith("#")) continue;
+      const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+      if (!match || process.env[match[1]] !== undefined) continue;
+      process.env[match[1]] = match[2].trim().replace(/^["']|["']$/g, "");
+    }
+  } catch {
+    // A local .env file is optional; the admin still works without view stats.
+  }
+}
+
 function assertSafeSlug(slug) {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
     throw new Error("Slug 只能包含小写字母、数字和连字符。");
@@ -92,6 +109,7 @@ async function readState() {
   const columns = await readJson("columns.json", []);
   const archive = await readJson("archive.json", []);
   const library = await readJson("library.json", []);
+  const views = await readViewStats();
   const homeFeatured = await readJson("orders/home-featured.json", []);
   const columnOrders = {};
 
@@ -104,7 +122,52 @@ async function readState() {
     ...(await readPostsFrom(path.join(contentDir, "drafts"), "drafts"))
   ].sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
 
-  return { columns, archive, library, posts, orders: { homeFeatured, columns: columnOrders } };
+  return { columns, archive, library, posts, views, orders: { homeFeatured, columns: columnOrders } };
+}
+
+async function readViewStats() {
+  const url = process.env.VIEW_COUNTER_ADMIN_URL;
+  const token = process.env.VIEW_COUNTER_ADMIN_TOKEN;
+
+  if (!url || !token) {
+    return {
+      enabled: false,
+      counts: {},
+      message: "未配置浏览量接口"
+    };
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 4000);
+
+  try {
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal
+    });
+
+    if (!response.ok) throw new Error(`浏览量接口返回 ${response.status}`);
+
+    const data = await response.json();
+    const counts = Object.fromEntries((data.views || []).map((item) => [
+      item.slug,
+      {
+        total: Number(item.total) || 0,
+        today: Number(item.today) || 0,
+        updatedAt: item.updatedAt || ""
+      }
+    ]));
+
+    return { enabled: true, counts, message: "" };
+  } catch (error) {
+    return {
+      enabled: false,
+      counts: {},
+      message: error.name === "AbortError" ? "浏览量接口超时" : error.message
+    };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function removePostFolder(base, slug) {

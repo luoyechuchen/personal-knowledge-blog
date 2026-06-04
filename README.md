@@ -9,6 +9,7 @@
 本地后台：React + Express，只监听 127.0.0.1
 内容格式：Markdown 正文 + JSON 元信息
 发布方式：手动 git commit + push
+浏览量：Cloudflare Worker + D1，可选启用，不记录 IP
 ```
 
 后台不会部署到公网，也不会自动执行 `git commit` 或 `git push`。
@@ -30,6 +31,7 @@ content/
 public/
   uploads/             图片上传目录
 scripts/               内容校验和搜索索引脚本
+views-worker/          浏览量统计 Worker，可选部署
 ```
 
 文章正文放在 `index.md`，文章元信息放在同目录的 `meta.json`。Markdown 文件顶部不使用 Front Matter。
@@ -126,13 +128,55 @@ Obsidian callout
 public/search-index.json
 ```
 
+## 浏览量统计
+
+浏览量统计是可选功能。公开博客仍然部署在 GitHub Pages；浏览量由 Cloudflare Worker + D1 记录，不需要租 VPS 或维护云服务器。
+
+当前策略：
+
+```text
+不记录 IP
+不做用户识别
+文章页变成可见状态后 +1
+前台不显示浏览量
+后台文章管理页显示总浏览量和今日浏览量
+```
+
+部署 Worker 见：
+
+```text
+views-worker/README.md
+```
+
+启用前台上报时，修改：
+
+```text
+public/view-counter.json
+```
+
+把 endpoint 改成 Worker 的公开上报接口：
+
+```json
+{
+  "endpoint": "https://your-worker.your-subdomain.workers.dev/api/view"
+}
+```
+
+启用本地后台读取时，在仓库根目录创建本地 `.env`：
+
+```bash
+VIEW_COUNTER_ADMIN_URL=https://your-worker.your-subdomain.workers.dev/api/admin/views
+VIEW_COUNTER_ADMIN_TOKEN=your-private-token
+```
+
+`.env` 已被 Git 忽略，不要提交。`VIEW_COUNTER_ADMIN_TOKEN` 只用于本地后台读取浏览量，不能放进前台代码。
+
 ## 第一版不做
 
 ```text
 评论系统
 用户注册
 在线后台
-在线数据库
 文章标签体系
 图书封面
 阅读时间

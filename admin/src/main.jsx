@@ -56,6 +56,13 @@ function formatStatus(status) {
   return status === "published" ? "已发布" : "草稿";
 }
 
+function formatViews(views, slug) {
+  if (!views?.enabled) return "-";
+  const current = views.counts?.[slug];
+  if (!current) return "0";
+  return `${current.total}${current.today ? ` / 今日 ${current.today}` : ""}`;
+}
+
 function TextInput({ label, value, onChange, placeholder }) {
   return (
     <label className="field">
@@ -238,7 +245,7 @@ function PostsManager({ state, refresh, selectedSlug, setSelectedSlug, postsView
       <div className="toolbar">
         <div>
           <strong>文章管理</strong>
-          <span>{message || "管理文章本体；首页推荐和专栏排序在各自页面调整。"}</span>
+          <span>{message || `管理文章本体；首页推荐和专栏排序在各自页面调整。${state.views?.enabled ? "" : ` · ${state.views?.message || "浏览量未配置"}`}`}</span>
         </div>
         <div className="actions">
           <button onClick={() => setSection("homeFeatured")}>首页推荐</button>
@@ -254,6 +261,7 @@ function PostsManager({ state, refresh, selectedSlug, setSelectedSlug, postsView
           <span>状态</span>
           <span>专栏</span>
           <span>更新</span>
+          <span>浏览</span>
           <span>操作</span>
         </div>
         {posts.map((post) => (
@@ -262,6 +270,7 @@ function PostsManager({ state, refresh, selectedSlug, setSelectedSlug, postsView
             <span>{formatStatus(post.status)}</span>
             <span>{columnName(state.columns, post.column)}</span>
             <span>{post.updatedAt || post.createdAt || "-"}</span>
+            <span>{formatViews(state.views, post.slug)}</span>
             <span className="row-actions">
               <button onClick={() => editPost(post.slug)}>编辑</button>
               <button className="danger" onClick={() => deletePost(post)}>删除</button>

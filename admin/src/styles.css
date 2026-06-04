@@ -273,7 +273,7 @@ nav .active,
 
 .post-admin-row {
   display: grid;
-  grid-template-columns: minmax(220px, 1.5fr) 88px 140px 116px minmax(120px, auto);
+  grid-template-columns: minmax(220px, 1.5fr) 88px 140px 116px 100px minmax(120px, auto);
   align-items: center;
   gap: 14px;
   border-bottom: 1px solid var(--line);

@@ -14,6 +14,7 @@ const post = await getPostBySlug(slug ?? "");
 const columns = await getColumns();
 const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
 const html = post ? renderMarkdown(post.markdown, posts, base) : "";
+const viewCounterConfigPath = `${base}view-counter.json`;
 ---
 
 <BaseLayout title={`${post?.title ?? "文章"} / 个人博客`} active="posts">
@@ -24,5 +25,36 @@ const html = post ? renderMarkdown(post.markdown, posts, base) : "";
       <div class="meta article-meta">{getColumnName(columns, post.column)} · {post.publishedAt}</div>
       <div class="markdown" set:html={html} />
     </article>
+  )}
+  {post && (
+    <script is:inline define:vars={{ postSlug: post.slug, viewCounterConfigPath }}>
+      (() => {
+        let reported = false;
+
+        const reportView = async () => {
+          if (reported || document.visibilityState !== "visible") return;
+
+          const configResponse = await fetch(`${viewCounterConfigPath}?ts=${Date.now()}`, { cache: "no-store" });
+          if (!configResponse.ok) return;
+          const config = await configResponse.json();
+          const endpoint = config?.endpoint;
+          if (!endpoint) return;
+
+          reported = true;
+          const payload = JSON.stringify({ slug: postSlug });
+          if (navigator.sendBeacon && navigator.sendBeacon(endpoint, payload)) return;
+
+          fetch(endpoint, {
+            method: "POST",
+            body: payload,
+            mode: "cors",
+            keepalive: true
+          }).catch(() => {});
+        };
+
+        if (document.visibilityState === "visible") reportView().catch(() => {});
+        else document.addEventListener("visibilitychange", () => reportView().catch(() => {}), { once: true });
+      })();
+    </script>
   )}
 </BaseLayout>

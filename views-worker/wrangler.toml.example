@@ -1,0 +1,12 @@
+name = "personal-blog-views"
+main = "src/index.js"
+compatibility_date = "2026-06-04"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGINS = "https://luoyechuchen.github.io,http://127.0.0.1:4321,http://localhost:4321,http://127.0.0.1:4322,http://localhost:4322"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "personal-blog-views"
+database_id = "replace-with-your-d1-database-id"

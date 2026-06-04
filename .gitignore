@@ -5,6 +5,9 @@ dist/
 .npm-cache/
 .env
 .env.*
+views-worker/wrangler.toml
+views-worker/.dev.vars
+views-worker/.dev.vars.*
 
 # Local-only drafts are intentionally not published.
 content/drafts/
