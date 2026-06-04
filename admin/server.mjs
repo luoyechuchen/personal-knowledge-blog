@@ -1,5 +1,6 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
+import { pinyin } from "pinyin-pro";
 import { access, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,7 +20,11 @@ function assertSafeSlug(slug) {
 }
 
 function slugify(text) {
-  return String(text || "")
+  const withPinyin = String(text || "").replace(/[\u4e00-\u9fff]+/g, (match) =>
+    pinyin(match, { toneType: "none", type: "array" }).join("-")
+  );
+
+  return withPinyin
     .normalize("NFKD")
     .trim()
     .toLowerCase()

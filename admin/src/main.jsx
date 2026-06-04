@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { pinyin } from "pinyin-pro";
 import "./styles.css";
 
 const emptyPost = {
@@ -18,7 +19,11 @@ git commit -m "Publish blog update"
 git push`;
 
 function slugify(text) {
-  return String(text || "")
+  const withPinyin = String(text || "").replace(/[\u4e00-\u9fff]+/g, (match) =>
+    pinyin(match, { toneType: "none", type: "array" }).join("-")
+  );
+
+  return withPinyin
     .normalize("NFKD")
     .trim()
     .toLowerCase()
