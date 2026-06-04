@@ -109,7 +109,6 @@ function Sidebar({ state, section, setSection, setPostsView, setSelectedSlug }) 
   const recent = [...state.posts].slice(0, 8);
   const navItems = [
     ["posts", "文章"],
-    ["homeFeatured", "首页推荐"],
     ["columns", "专栏"],
     ["archive", "资料存档"],
     ["library", "图书馆"]
@@ -137,7 +136,7 @@ function Sidebar({ state, section, setSection, setPostsView, setSelectedSlug }) 
       <div className="brand">本地后台<span>写作台</span></div>
       <nav>
         {navItems.map(([key, label]) => (
-          <button key={key} className={section === key ? "active" : ""} onClick={() => openSection(key)}>
+          <button key={key} className={section === key || (key === "posts" && section === "homeFeatured") ? "active" : ""} onClick={() => openSection(key)}>
             {label}
           </button>
         ))}
@@ -154,7 +153,7 @@ function Sidebar({ state, section, setSection, setPostsView, setSelectedSlug }) 
   );
 }
 
-function PostsManager({ state, refresh, selectedSlug, setSelectedSlug, postsView, setPostsView }) {
+function PostsManager({ state, refresh, selectedSlug, setSelectedSlug, postsView, setPostsView, setSection }) {
   const [message, setMessage] = useState("");
   const [gitDirty, setGitDirty] = useState(false);
   const posts = [...state.posts].sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
@@ -206,6 +205,7 @@ function PostsManager({ state, refresh, selectedSlug, setSelectedSlug, postsView
           <span>{message || "管理文章本体；首页推荐和专栏排序在各自页面调整。"}</span>
         </div>
         <div className="actions">
+          <button onClick={() => setSection("homeFeatured")}>首页推荐</button>
           <button className="primary" onClick={newPost}>新建文章</button>
         </div>
       </div>
@@ -584,6 +584,7 @@ function ColumnsManager({ state, refresh, setSection }) {
 function JsonListManager({ title, field, state, refresh, setSection }) {
   const [rows, setRows] = useState(state[field]);
   const [message, setMessage] = useState("");
+  const [gitDirty, setGitDirty] = useState(false);
   const keys = field === "library" ? ["title", "author"] : ["title", "author", "url", "source", "note", "savedAt"];
 
   async function save() {
@@ -594,6 +595,7 @@ function JsonListManager({ title, field, state, refresh, setSection }) {
     });
     await refresh();
     setMessage(`已保存 · ${new Date().toLocaleTimeString()}`);
+    setGitDirty(true);
   }
 
   return (
@@ -608,6 +610,7 @@ function JsonListManager({ title, field, state, refresh, setSection }) {
           <button className="primary" onClick={save}>保存</button>
         </div>
       </div>
+      <GitPublishNotice visible={gitDirty} message={`${title}有未提交改动`} />
       <div className="data-table">
         {rows.map((row, rowIndex) => (
           <div className="data-row" key={rowIndex}>
@@ -631,6 +634,7 @@ function ArchiveManager({ state, refresh, setSection }) {
   const [rows, setRows] = useState(state.archive);
   const [expandedRows, setExpandedRows] = useState(() => new Set());
   const [message, setMessage] = useState("");
+  const [gitDirty, setGitDirty] = useState(false);
 
   function updateRow(index, key, value) {
     const next = [...rows];
@@ -707,6 +711,7 @@ function ArchiveManager({ state, refresh, setSection }) {
     setRows(archive);
     await refresh();
     setMessage(`已保存 · ${new Date().toLocaleTimeString()}`);
+    setGitDirty(true);
   }
 
   return (
@@ -723,6 +728,7 @@ function ArchiveManager({ state, refresh, setSection }) {
           <button className="primary" onClick={save}>保存资料库</button>
         </div>
       </div>
+      <GitPublishNotice visible={gitDirty} message="资料库有未提交改动" />
 
       <div className="data-table">
         {rows.map((row, rowIndex) => {
@@ -809,6 +815,7 @@ function App() {
           setSelectedSlug={setSelectedSlug}
           postsView={postsView}
           setPostsView={setPostsView}
+          setSection={setSection}
         />
       )}
       {section === "homeFeatured" && <HomeFeaturedManager state={state} refresh={refresh} setSection={setSection} />}

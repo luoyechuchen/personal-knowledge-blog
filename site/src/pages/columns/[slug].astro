@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PostList from "../../components/PostList.astro";
-import { getColumnOrder, getColumns, getPublishedPosts, sortByOrder } from "../../lib/content";
+import { getColumnOrder, getColumns, getPublishedPosts, sortByNewest, sortByOrder } from "../../lib/content";
 
 export async function getStaticPaths() {
   const columns = await getColumns();
@@ -13,12 +13,51 @@ const columns = await getColumns();
 const column = columns.find((item) => item.slug === slug);
 const posts = (await getPublishedPosts()).filter((post) => post.column === slug);
 const ordered = sortByOrder(posts, await getColumnOrder(slug ?? ""));
+const newest = sortByNewest(posts);
+const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
 ---
 
 <BaseLayout title={`${column?.name ?? "专栏"} / 个人博客`} active="columns">
-  <div class="section-heading stack">
-    <h1>{column?.name}</h1>
-    <p>{column?.description}</p>
+  <div class="section-heading">
+    <div>
+      <h1>{column?.name}</h1>
+      <p>{column?.description}</p>
+    </div>
+    <div class="segmented" data-view-toggle>
+      <a href={`${base}columns/${slug}/`} class="active" data-view-link="featured">推荐</a>
+      <a href={`${base}columns/${slug}/?sort=newest`} data-view-link="newest">最新</a>
+    </div>
   </div>
-  <PostList posts={ordered} columns={columns} />
+  <div data-view-panel="featured">
+    <PostList posts={ordered} columns={columns} />
+  </div>
+  <div data-view-panel="newest" hidden>
+    <PostList posts={newest} columns={columns} />
+  </div>
+  <script>
+    const links = [...document.querySelectorAll("[data-view-link]")];
+    const panels = [...document.querySelectorAll("[data-view-panel]")];
+
+    function setView(view, push = false) {
+      const next = view === "newest" ? "newest" : "featured";
+      links.forEach((link) => link.classList.toggle("active", link.dataset.viewLink === next));
+      panels.forEach((panel) => {
+        panel.hidden = panel.dataset.viewPanel !== next;
+      });
+      if (push) {
+        const url = next === "newest" ? `${location.pathname}?sort=newest` : location.pathname;
+        history.pushState({}, "", url);
+      }
+    }
+
+    links.forEach((link) => {
+      link.addEventListener("click", (event) => {
+        event.preventDefault();
+        setView(link.dataset.viewLink, true);
+      });
+    });
+
+    setView(new URLSearchParams(location.search).get("sort"));
+    window.addEventListener("popstate", () => setView(new URLSearchParams(location.search).get("sort")));
+  </script>
 </BaseLayout>
