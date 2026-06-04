@@ -16,35 +16,18 @@
 
 body {
   margin: 0;
-  background: var(--paper);
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(circle at 28% 34%, rgba(255, 212, 172, 0.2), transparent 26%),
+    linear-gradient(90deg, rgba(3, 3, 7, 0.82), rgba(6, 6, 12, 0.58) 42%, rgba(2, 2, 6, 0.78)),
+    url("../backgrounds/site-background.jpg");
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
   color: var(--ink);
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.7;
   min-height: 100vh;
-}
-
-body::before,
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-}
-
-body::before {
-  z-index: -2;
-  background-image: url("../backgrounds/site-background.jpg");
-  background-position: center;
-  background-size: cover;
-  filter: blur(10px) saturate(1.08) brightness(0.72);
-  transform: scale(1.04);
-}
-
-body::after {
-  z-index: -1;
-  background:
-    radial-gradient(circle at 28% 34%, rgba(255, 212, 172, 0.22), transparent 28%),
-    linear-gradient(90deg, rgba(3, 3, 7, 0.78), rgba(6, 6, 12, 0.58) 42%, rgba(2, 2, 6, 0.76));
 }
 
 a {
