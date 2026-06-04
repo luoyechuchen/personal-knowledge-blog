@@ -9,10 +9,11 @@
   ],
   "scripts": {
     "dev:site": "npm --workspace site run dev",
-    "build": "npm run generate:search && npm --workspace site run build",
+    "build": "npm run generate:deploy && npm run generate:search && npm --workspace site run build",
     "preview:site": "npm --workspace site run preview",
     "dev:admin": "npm --workspace admin run dev",
     "start:admin": "npm --workspace admin run start",
+    "generate:deploy": "node scripts/generate-deploy-info.mjs",
     "generate:search": "node scripts/generate-search-index.mjs",
     "validate:content": "node scripts/validate-content.mjs"
   }
