@@ -1,12 +1,17 @@
 [
   {
+    "name": "交易",
+    "slug": "trading",
+    "description": "市场交易相关分析"
+  },
+  {
     "name": "AI 与编程",
     "slug": "ai-programming",
     "description": "关于模型、工具、工程实践和人机协作。"
   },
   {
-    "name": "阅读与写作",
-    "slug": "reading-writing",
-    "description": "关于输入、表达和长期思考。"
+    "name": "杂谈",
+    "slug": "reading-thinking-writing",
+    "description": "关于输入、长期思考和表达。"
   }
 ]
