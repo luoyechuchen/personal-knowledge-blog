@@ -320,25 +320,30 @@ function PostEditor({ state, refresh, selectedSlug, setSelectedSlug, setPostsVie
   const [dirty, setDirty] = useState(false);
   const [gitDirty, setGitDirty] = useState(false);
   const [draftImages, setDraftImages] = useState({});
+  const [slugEdited, setSlugEdited] = useState(false);
   const editorRef = useRef(null);
 
   useEffect(() => {
-    const nextPost = state.posts.find((item) => item.slug === selectedSlug) || { ...emptyPost, column: state.columns[0]?.slug || "" };
+    const foundPost = state.posts.find((item) => item.slug === selectedSlug);
+    if (selectedSlug && !foundPost) return;
+    const nextPost = foundPost || { ...emptyPost, column: state.columns[0]?.slug || "" };
     setPost(nextPost);
     setMode("edit");
     setMessage(nextPost.slug ? "" : "正在新建文章");
     setDirty(false);
     setGitDirty(false);
     setDraftImages({});
+    setSlugEdited(false);
   }, [selectedSlug]);
 
   function update(key, value) {
     setPost((current) => {
       const next = { ...current, [key]: value };
-      if (key === "title" && !current.slug) next.slug = slugify(value);
+      if (key === "title" && !slugEdited) next.slug = slugify(value);
       if (key === "slug") next.slug = slugify(value);
       return next;
     });
+    if (key === "slug") setSlugEdited(true);
     setDirty(true);
     setMessage("有未保存修改");
   }
@@ -347,7 +352,7 @@ function PostEditor({ state, refresh, selectedSlug, setSelectedSlug, setPostsVie
     setMessage(status === "published" ? "发布中..." : "保存中...");
     try {
       if (!post.title.trim()) throw new Error("标题不能为空。");
-      const slug = slugify(post.slug || post.title) || fallbackSlug("post");
+      const slug = slugify(slugEdited ? post.slug || post.title : post.title) || fallbackSlug("post");
       const postToSave = { ...post, slug };
       if (existing?.status === "published" && status === "draft" && !confirm("这会把已发布文章移回草稿，并从公开内容区删除。确定继续吗？")) {
         setMessage("已取消");
@@ -363,9 +368,10 @@ function PostEditor({ state, refresh, selectedSlug, setSelectedSlug, setPostsVie
         body: JSON.stringify({ ...postToSave, status, originalSlug: existing?.slug || "", imageAttachments: draftImages })
       });
       setPost(result.post);
-      setSelectedSlug(result.post.slug);
       setDraftImages({});
+      setSlugEdited(false);
       await refresh();
+      setSelectedSlug(result.post.slug);
       setDirty(false);
       setGitDirty(true);
       setParentGitDirty(true);
