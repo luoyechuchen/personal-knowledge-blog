@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { pinyin } from "pinyin-pro";
 import "./styles.css";
@@ -117,9 +117,23 @@ function sortRecentFirst(items) {
   return [...items].sort((a, b) => recentValue(b) - recentValue(a));
 }
 
-function renderPreviewLine(line, index) {
+function imageUrlFromClipboard(text) {
+  const value = String(text || "").trim();
+  const markdownImage = value.match(/^!\[[^\]]*]\((https?:\/\/\S+)\)$/i);
+  if (markdownImage) return markdownImage[1];
+  if (/^https?:\/\/\S+\.(png|jpe?g|gif|webp)(\?\S*)?$/i.test(value)) return value;
+  const htmlImage = value.match(/<img[^>]+src=["'](https?:\/\/[^"']+)["']/i);
+  return htmlImage?.[1] || "";
+}
+
+function renderPreviewLine(line, index, draftImages = {}) {
   const image = line.match(/^!\[([^\]]*)]\(([^)]+)\)$/);
-  if (image) return <img key={index} src={image[2]} alt={image[1] || "图片"} />;
+  if (image) {
+    const src = image[2].startsWith("draft-image:")
+      ? draftImages[image[2].slice("draft-image:".length)]?.dataUrl || ""
+      : image[2];
+    return src ? <img key={index} src={src} alt={image[1] || "图片"} /> : <p key={index}>{line}</p>;
+  }
   if (line.startsWith("# ")) return <h1 key={index}>{line.slice(2)}</h1>;
   if (line.startsWith("## ")) return <h2 key={index}>{line.slice(3)}</h2>;
   if (line.startsWith("> [!")) return null;
@@ -305,6 +319,8 @@ function PostEditor({ state, refresh, selectedSlug, setSelectedSlug, setPostsVie
   const [message, setMessage] = useState(isNew ? "正在新建文章" : "");
   const [dirty, setDirty] = useState(false);
   const [gitDirty, setGitDirty] = useState(false);
+  const [draftImages, setDraftImages] = useState({});
+  const editorRef = useRef(null);
 
   useEffect(() => {
     const nextPost = state.posts.find((item) => item.slug === selectedSlug) || { ...emptyPost, column: state.columns[0]?.slug || "" };
@@ -313,6 +329,7 @@ function PostEditor({ state, refresh, selectedSlug, setSelectedSlug, setPostsVie
     setMessage(nextPost.slug ? "" : "正在新建文章");
     setDirty(false);
     setGitDirty(false);
+    setDraftImages({});
   }, [selectedSlug]);
 
   function update(key, value) {
@@ -343,10 +360,11 @@ function PostEditor({ state, refresh, selectedSlug, setSelectedSlug, setPostsVie
 
       const result = await api("/api/posts", {
         method: "POST",
-        body: JSON.stringify({ ...postToSave, status, originalSlug: existing?.slug || "" })
+        body: JSON.stringify({ ...postToSave, status, originalSlug: existing?.slug || "", imageAttachments: draftImages })
       });
       setPost(result.post);
       setSelectedSlug(result.post.slug);
+      setDraftImages({});
       await refresh();
       setDirty(false);
       setGitDirty(true);
@@ -380,19 +398,44 @@ function PostEditor({ state, refresh, selectedSlug, setSelectedSlug, setPostsVie
     }
   }
 
-  async function onPaste(event) {
+  function insertMarkdown(snippet, nextMessage) {
+    const textarea = editorRef.current;
+    setPost((current) => {
+      const markdown = current.markdown || "";
+      const start = textarea?.selectionStart ?? markdown.length;
+      const end = textarea?.selectionEnd ?? markdown.length;
+      const prefix = start > 0 && !markdown.slice(0, start).endsWith("\n") ? "\n\n" : "";
+      const suffix = !markdown.slice(end).startsWith("\n") ? "\n" : "";
+      return {
+        ...current,
+        markdown: `${markdown.slice(0, start)}${prefix}${snippet}${suffix}${markdown.slice(end)}`
+      };
+    });
+    setDirty(true);
+    setMessage(nextMessage);
+  }
+
+  function onPaste(event) {
     const file = [...event.clipboardData.files].find((item) => item.type.startsWith("image/"));
-    if (!file) return;
+    if (file) {
+      event.preventDefault();
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const reader = new FileReader();
+      reader.onload = () => {
+        setDraftImages((current) => ({
+          ...current,
+          [id]: { filename: file.name || "pasted-image.png", dataUrl: reader.result }
+        }));
+        insertMarkdown(`![图片说明](draft-image:${id})`, "图片已加入临时预览，保存/发布时会导入项目");
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const imageUrl = imageUrlFromClipboard(event.clipboardData.getData("text/plain") || event.clipboardData.getData("text/html"));
+    if (!imageUrl) return;
     event.preventDefault();
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const result = await api("/api/uploads", {
-        method: "POST",
-        body: JSON.stringify({ filename: file.name || "pasted-image.png", dataUrl: reader.result })
-      });
-      update("markdown", `${post.markdown}\n\n![图片说明](${result.path})\n`);
-    };
-    reader.readAsDataURL(file);
+    insertMarkdown(`![图片说明](${imageUrl})`, "远程图片已加入预览，保存/发布时会导入项目");
   }
 
   return (
@@ -427,10 +470,10 @@ function PostEditor({ state, refresh, selectedSlug, setSelectedSlug, setPostsVie
       <TextInput label="摘要" value={post.summary} onChange={(value) => update("summary", value)} />
 
       {mode === "edit" ? (
-        <textarea className="editor" value={post.markdown} onPaste={onPaste} onChange={(event) => update("markdown", event.target.value)} />
+        <textarea ref={editorRef} className="editor" value={post.markdown} onPaste={onPaste} onChange={(event) => update("markdown", event.target.value)} />
       ) : (
         <article className="preview">
-          {post.markdown.split("\n").map(renderPreviewLine)}
+          {post.markdown.split("\n").map((line, index) => renderPreviewLine(line, index, draftImages))}
         </article>
       )}
     </main>

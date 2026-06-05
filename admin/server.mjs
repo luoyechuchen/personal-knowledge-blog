@@ -81,6 +81,97 @@ function safeUploadName(name) {
   return `${base || "image"}-${Date.now()}${ext || ".png"}`;
 }
 
+const imageTypes = new Map([
+  ["image/png", ".png"],
+  ["image/jpeg", ".jpg"],
+  ["image/jpg", ".jpg"],
+  ["image/gif", ".gif"],
+  ["image/webp", ".webp"]
+]);
+
+const maxImportedImageBytes = 8 * 1024 * 1024;
+
+function imageExtension(type) {
+  return imageTypes.get(String(type || "").split(";")[0].trim().toLowerCase()) || "";
+}
+
+async function saveUploadBuffer(buffer, filename) {
+  if (buffer.byteLength > maxImportedImageBytes) throw new Error("图片不能超过 8MB。");
+  const name = safeUploadName(filename);
+  const file = path.join(publicDir, "uploads", name);
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(file, buffer);
+  return `/uploads/${name}`;
+}
+
+async function saveDataImage(dataUrl, filename = "pasted-image.png") {
+  const match = String(dataUrl || "").match(/^data:(image\/(?:png|jpeg|jpg|gif|webp));base64,(.+)$/);
+  if (!match) throw new Error("只支持 png、jpg、gif、webp 图片。");
+  const ext = imageExtension(match[1]) || path.extname(filename) || ".png";
+  return saveUploadBuffer(Buffer.from(match[2], "base64"), filename.endsWith(ext) ? filename : `${filename}${ext}`);
+}
+
+async function saveRemoteImage(src) {
+  const url = new URL(src);
+  if (!["http:", "https:"].includes(url.protocol)) throw new Error("只支持 http/https 图片链接。");
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  try {
+    const response = await fetch(url, {
+      headers: { "User-Agent": "personal-knowledge-blog-admin/1.0" },
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`远程图片返回 ${response.status}`);
+
+    const type = response.headers.get("content-type") || "";
+    const ext = imageExtension(type);
+    if (!ext) throw new Error("远程链接不是支持的图片格式。");
+
+    const length = Number(response.headers.get("content-length")) || 0;
+    if (length > maxImportedImageBytes) throw new Error("远程图片不能超过 8MB。");
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const sourceName = path.basename(url.pathname) || `remote-image${ext}`;
+    const filename = path.extname(sourceName) ? sourceName : `${sourceName}${ext}`;
+    return saveUploadBuffer(buffer, filename);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function localizeImageSource(src, attachments) {
+  const value = String(src || "").trim().replace(/^<|>$/g, "");
+  if (!value || value.startsWith("/uploads/")) return value;
+
+  if (value.startsWith("draft-image:")) {
+    const id = value.slice("draft-image:".length);
+    const attachment = attachments?.[id];
+    if (!attachment?.dataUrl) throw new Error("临时图片已经失效，请重新粘贴后再保存。");
+    return saveDataImage(attachment.dataUrl, attachment.filename || "pasted-image.png");
+  }
+
+  if (value.startsWith("data:image/")) return saveDataImage(value);
+  if (/^https?:\/\//i.test(value)) return saveRemoteImage(value);
+  return value;
+}
+
+async function localizeMarkdownImages(markdown, attachments = {}) {
+  const imagePattern = /(!\[[^\]]*]\()(\S+)([^)]*\))/g;
+  let result = "";
+  let cursor = 0;
+
+  for (const match of markdown.matchAll(imagePattern)) {
+    const [full, prefix, src, suffix] = match;
+    const nextSrc = await localizeImageSource(src, attachments);
+    result += markdown.slice(cursor, match.index);
+    result += nextSrc === src ? full : `${prefix}${nextSrc}${suffix}`;
+    cursor = match.index + full.length;
+  }
+
+  return result + markdown.slice(cursor);
+}
+
 async function pathExists(target) {
   try {
     await access(target);
@@ -292,8 +383,10 @@ app.post("/api/posts", async (req, res) => {
     const targetBase = meta.status === "published" ? publishedDir : draftsDir;
     const targetDir = path.join(targetBase, meta.slug);
 
+    const markdown = await localizeMarkdownImages(String(post.markdown || ""), post.imageAttachments || {});
+
     await mkdir(targetDir, { recursive: true });
-    await writeFile(path.join(targetDir, "index.md"), String(post.markdown || ""));
+    await writeFile(path.join(targetDir, "index.md"), markdown);
     await writeFile(path.join(targetDir, "meta.json"), `${JSON.stringify(meta, null, 2)}\n`);
 
     if (originalSlug && originalSlug !== meta.slug) {
@@ -314,7 +407,7 @@ app.post("/api/posts", async (req, res) => {
       await cleanupColumnOrders(meta.slug);
     }
 
-    res.json({ ok: true, post: { ...meta, markdown: post.markdown || "" } });
+    res.json({ ok: true, post: { ...meta, markdown } });
   } catch (error) {
     res.status(400).json({ ok: false, message: error.message });
   }
