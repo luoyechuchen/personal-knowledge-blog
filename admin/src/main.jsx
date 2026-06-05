@@ -296,13 +296,13 @@ function PostEditor({ state, refresh, selectedSlug, setSelectedSlug, setPostsVie
   const [gitDirty, setGitDirty] = useState(false);
 
   useEffect(() => {
-    const nextPost = existing || { ...emptyPost, column: state.columns[0]?.slug || "" };
+    const nextPost = state.posts.find((item) => item.slug === selectedSlug) || { ...emptyPost, column: state.columns[0]?.slug || "" };
     setPost(nextPost);
     setMode("edit");
-    setMessage(existing ? "" : "正在新建文章");
+    setMessage(nextPost.slug ? "" : "正在新建文章");
     setDirty(false);
     setGitDirty(false);
-  }, [selectedSlug, existing, state.columns]);
+  }, [selectedSlug]);
 
   function update(key, value) {
     setPost((current) => {
