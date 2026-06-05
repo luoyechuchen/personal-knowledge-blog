@@ -1,11 +1,51 @@
 [
   {
-    "title": "奇特的一生",
-    "author": "达尼伊尔·格拉宁"
+    "title": "我把活着欢喜过了",
+    "author": "梁实秋"
   },
   {
-    "title": "冒姓琅琊",
-    "author": "东周公子南"
+    "title": "沉思录",
+    "author": "马可·奥勒留"
+  },
+  {
+    "title": "亨利·亚当斯的教育",
+    "author": "亨利·亚当斯"
+  },
+  {
+    "title": "Rationality： From AI to Zombies",
+    "author": "Eliezer Yudkowsky"
+  },
+  {
+    "title": "别闹了，费曼先生",
+    "author": "理查德·费曼"
+  },
+  {
+    "title": "哥德尔、艾舍尔、巴赫：集异璧之大成",
+    "author": "侯世达"
+  },
+  {
+    "title": "费曼物理学讲义",
+    "author": "理查德·费曼"
+  },
+  {
+    "title": "Judgment under Uncertainty",
+    "author": "Daniel Kahneman、Paul Slovic、Amos Tversky"
+  },
+  {
+    "title": "Asking the Right Questions",
+    "author": "M. Neil Browne、Stuart M. Keeley"
+  },
+  {
+    "title": "影响力",
+    "author": "罗伯特·西奥迪尼"
+  },
+  {
+    "title": "2001：太空漫游",
+    "author": "阿瑟·克拉克"
+  },
+  {
+    "title": "克苏鲁的呼唤",
+    "author": "H. P. 洛夫克拉夫特"
   },
   {
     "title": "人类的故事",
@@ -120,7 +160,7 @@
     "author": "威尔·杜兰特"
   },
   {
-    "title": "哈利波特与理性之道",
+    "title": "哈利·波特与理性之道",
     "author": "Eliezer Yudkowsky"
   }
 ]
