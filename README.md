@@ -10,7 +10,9 @@ https://luoyechuchen.github.io/personal-knowledge-blog/
 
 ## 当前版本
 
-当前项目是第二版：在第一版个人博客原型的基础上，补齐了本地写作台、文章管理、资料原文上传、图书馆排序、浏览量统计、日夜主题和发布提示。
+当前正在使用的是第三版草稿：它继承第二版封装点，并继续加入更可靠的图片资产管理、发布提示修复和后台编辑体验修复。
+
+第二版已经封装在 GitHub Release / tag 中；第三版还没有封装，所以它不会出现在 Releases 列表里，而是记录在 `v3-draft` 分支中。
 
 版本记录见：
 
@@ -18,11 +20,12 @@ https://luoyechuchen.github.io/personal-knowledge-blog/
 VERSIONS.md
 ```
 
-GitHub 版本标签：
+GitHub 版本：
 
 ```text
-v1-prototype  第一次提交的个人博客原型
-v2-current    当前第二版
+v1-prototype  第一次提交的个人博客原型，正式 tag / Release
+v2-current    第二版封装点，正式 tag / Release
+v3-draft      当前使用中的第三版草稿，branch，尚未封装
 ```
 
 ## 架构
