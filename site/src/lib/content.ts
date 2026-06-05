@@ -61,7 +61,8 @@ export async function getArchiveItemBySlug(slug: string): Promise<ArchiveItem | 
 }
 
 export async function getBooks(): Promise<Book[]> {
-  return readJson<Book[]>("library.json");
+  const books = await readJson<Book[]>("library.json");
+  return [...books].reverse();
 }
 
 export async function getHomeFeaturedOrder(): Promise<string[]> {
