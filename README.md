@@ -1,6 +1,29 @@
-# Personal Knowledge Blog
+# 无边落夜
 
-这是一个个人博客第一版：公开前台使用 Astro 静态生成，本地后台只在自己的电脑上运行。它适合长期写作、按专栏组织文章、保存外部资料，以及维护一份简洁书单。
+这是“无边落夜”的个人知识博客。公开前台部署在 GitHub Pages，本地后台只在自己的电脑上运行，用来写文章、整理专栏、保存资料、维护图书馆，并查看文章浏览量。
+
+公开地址：
+
+```text
+https://luoyechuchen.github.io/personal-knowledge-blog/
+```
+
+## 当前版本
+
+当前项目是第二版：在第一版个人博客原型的基础上，补齐了本地写作台、文章管理、资料原文上传、图书馆排序、浏览量统计、日夜主题和发布提示。
+
+版本记录见：
+
+```text
+VERSIONS.md
+```
+
+GitHub 版本标签：
+
+```text
+v1-prototype  第一次提交的个人博客原型
+v2-current    当前第二版
+```
 
 ## 架构
 
@@ -12,7 +35,19 @@
 浏览量：Cloudflare Worker + D1，可选启用，不记录 IP
 ```
 
-后台不会部署到公网，也不会自动执行 `git commit` 或 `git push`。
+后台不会部署到公网，也不会自动执行 `git commit` 或 `git push`。公开网站只包含静态页面和公开内容。
+
+## 功能
+
+```text
+文章：按发布时间查看，也可以维护首页推荐排序
+专栏：一篇文章属于一个专栏，专栏页支持推荐/最新两种阅读顺序
+资料存档：支持外部链接，也支持粘贴 Markdown 原文生成阅读页
+图书馆：后台按最近编辑优先，前台按最早添加优先，适合循序阅读
+搜索：搜索文章标题和正文
+主题：日间模式与夜间星空模式
+浏览量：文章可见时计数，后台显示总浏览量和今日浏览量
+```
 
 ## 项目结构
 
@@ -64,16 +99,17 @@ http://127.0.0.1:4321
 
 ## 发布流程
 
-后台保存文章后，先本地预览，然后手动提交：
+后台保存内容后，先本地预览，然后手动提交：
 
 ```bash
+cd /Users/luoyechuchen/Documents/coding
 git status
-git add content public/uploads site admin scripts .github README.md package.json package-lock.json
+git add content public/uploads
 git commit -m "Publish blog update"
 git push
 ```
 
-推送到 GitHub 后，GitHub Actions 会构建 `dist/` 并发布到 GitHub Pages。
+如果修改了网站代码或文档，再按需把对应文件加入 `git add`。推送到 GitHub 后，GitHub Actions 会构建 `dist/` 并发布到 GitHub Pages。
 
 ## 草稿规则
 
@@ -87,7 +123,7 @@ content/drafts/
 
 ## 图片规则
 
-第一版只支持简单的图片上传、粘贴和保存。图片会保存到：
+当前只支持简单的图片上传、粘贴和保存。图片会保存到：
 
 ```text
 public/uploads/
@@ -99,7 +135,7 @@ Markdown 中引用形式：
 ![图片说明](/uploads/example.png)
 ```
 
-第一版不做复杂图片清理、压缩、去重和附件管理。
+当前版本不做复杂图片清理、压缩、去重和附件管理。
 
 ## Markdown 支持
 
@@ -171,7 +207,7 @@ VIEW_COUNTER_ADMIN_TOKEN=your-private-token
 
 `.env` 已被 Git 忽略，不要提交。`VIEW_COUNTER_ADMIN_TOKEN` 只用于本地后台读取浏览量，不能放进前台代码。
 
-## 第一版不做
+## 当前不做
 
 ```text
 评论系统
