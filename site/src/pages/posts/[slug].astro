@@ -1,6 +1,6 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { getColumnName, getColumns, getPostBySlug, getPublishedPosts } from "../../lib/content";
+import { formatDate, getColumnName, getColumns, getPostBySlug, getPublishedPosts } from "../../lib/content";
 import { renderMarkdown } from "../../lib/markdown";
 
 export async function getStaticPaths() {
@@ -22,7 +22,7 @@ const viewCounterConfigPath = `${base}view-counter.json`;
     <article class="article">
       <a class="back-link" href={base}>返回文章</a>
       <h1>{post.title}</h1>
-      <div class="meta article-meta">{getColumnName(columns, post.column)} · {post.publishedAt}</div>
+      <div class="meta article-meta">{getColumnName(columns, post.column)} · {formatDate(post.publishedAt)}</div>
       <div class="markdown" set:html={html} />
     </article>
   )}

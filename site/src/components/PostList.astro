@@ -1,6 +1,6 @@
 ---
 import type { Column, Post } from "../lib/content";
-import { getColumnName } from "../lib/content";
+import { formatDate, getColumnName } from "../lib/content";
 
 type Props = {
   posts: Post[];
@@ -16,7 +16,7 @@ const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL :
     <article class="post-item">
       <a href={`${base}posts/${post.slug}/`} class="post-title">{post.title}</a>
       <p>{post.summary}</p>
-      <div class="meta">{getColumnName(columns, post.column)} · {post.publishedAt}</div>
+      <div class="meta">{getColumnName(columns, post.column)} · {formatDate(post.publishedAt)}</div>
     </article>
   ))}
 </div>

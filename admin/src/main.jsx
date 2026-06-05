@@ -56,6 +56,10 @@ function formatStatus(status) {
   return status === "published" ? "已发布" : "草稿";
 }
 
+function formatDate(value) {
+  return value ? String(value).slice(0, 10) : "-";
+}
+
 function formatViews(views, slug) {
   if (!views?.enabled) return "-";
   const current = views.counts?.[slug];
@@ -269,7 +273,7 @@ function PostsManager({ state, refresh, selectedSlug, setSelectedSlug, postsView
             <strong>{post.title}</strong>
             <span>{formatStatus(post.status)}</span>
             <span>{columnName(state.columns, post.column)}</span>
-            <span>{post.updatedAt || post.createdAt || "-"}</span>
+            <span>{formatDate(post.updatedAt || post.createdAt)}</span>
             <span>{formatViews(state.views, post.slug)}</span>
             <span className="row-actions">
               <button onClick={() => editPost(post.slug)}>编辑</button>
@@ -513,7 +517,7 @@ function HomeFeaturedManager({ state, refresh, setSection }) {
             <div className="add-row" key={post.slug}>
               <div>
                 <strong>{post.title}</strong>
-                <span>{columnName(state.columns, post.column)} · {post.publishedAt || "未发布"}</span>
+                <span>{columnName(state.columns, post.column)} · {post.publishedAt ? formatDate(post.publishedAt) : "未发布"}</span>
               </div>
               <button onClick={() => addPost(post.slug)}>添加</button>
             </div>

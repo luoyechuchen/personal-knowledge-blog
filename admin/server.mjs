@@ -15,14 +15,14 @@ app.use(express.json({ limit: "12mb" }));
 
 await loadLocalEnv();
 
-async function loadLocalEnv() {
+async function loadLocalEnv({ override = false } = {}) {
   try {
     const text = await readFile(path.join(root, ".env"), "utf8");
     for (const rawLine of text.split(/\r?\n/)) {
       const line = rawLine.trim();
       if (!line || line.startsWith("#")) continue;
       const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
-      if (!match || process.env[match[1]] !== undefined) continue;
+      if (!match || (!override && process.env[match[1]] !== undefined)) continue;
       process.env[match[1]] = match[2].trim().replace(/^["']|["']$/g, "");
     }
   } catch {
@@ -54,6 +54,24 @@ function slugify(text) {
 
 function fallbackSlug(prefix = "post") {
   return `${prefix}-${Date.now()}`;
+}
+
+function localTimestamp(date = new Date()) {
+  const offset = -date.getTimezoneOffset();
+  const sign = offset >= 0 ? "+" : "-";
+  const absoluteOffset = Math.abs(offset);
+  const parts = [
+    date.getFullYear(),
+    date.getMonth() + 1,
+    date.getDate(),
+    date.getHours(),
+    date.getMinutes(),
+    date.getSeconds(),
+    Math.floor(absoluteOffset / 60),
+    absoluteOffset % 60
+  ].map((part) => String(part).padStart(2, "0"));
+
+  return `${parts[0]}-${parts[1]}-${parts[2]}T${parts[3]}:${parts[4]}:${parts[5]}${sign}${parts[6]}:${parts[7]}`;
 }
 
 function safeUploadName(name) {
@@ -126,6 +144,8 @@ async function readState() {
 }
 
 async function readViewStats() {
+  await loadLocalEnv({ override: true });
+
   const url = process.env.VIEW_COUNTER_ADMIN_URL;
   const token = process.env.VIEW_COUNTER_ADMIN_TOKEN;
 
@@ -252,7 +272,7 @@ app.post("/api/posts", async (req, res) => {
     if (originalSlug) assertSafeSlug(originalSlug);
     const finalSlug = await uniquePostSlug(requestedSlug, originalSlug);
 
-    const now = new Date().toISOString().slice(0, 10);
+    const now = localTimestamp();
     const meta = {
       title: String(post.title || "").trim(),
       slug: finalSlug,

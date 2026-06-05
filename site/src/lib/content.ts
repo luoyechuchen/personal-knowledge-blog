@@ -103,7 +103,7 @@ export async function getPostBySlug(slug: string): Promise<Post | undefined> {
 }
 
 export function sortByNewest(posts: Post[]): Post[] {
-  return [...posts].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+  return [...posts].sort((a, b) => comparePostDates(a, b));
 }
 
 export function sortByOrder(posts: Post[], orderedSlugs: string[]): Post[] {
@@ -112,10 +112,26 @@ export function sortByOrder(posts: Post[], orderedSlugs: string[]): Post[] {
     const aOrder = order.get(a.slug) ?? Number.MAX_SAFE_INTEGER;
     const bOrder = order.get(b.slug) ?? Number.MAX_SAFE_INTEGER;
     if (aOrder !== bOrder) return aOrder - bOrder;
-    return b.publishedAt.localeCompare(a.publishedAt);
+    return comparePostDates(a, b);
   });
+}
+
+export function formatDate(value: string): string {
+  return value ? value.slice(0, 10) : "";
 }
 
 export function getColumnName(columns: Column[], slug: string): string {
   return columns.find((column) => column.slug === slug)?.name ?? "未归类";
+}
+
+function postDateValue(post: Post): number {
+  const value = post.publishedAt || post.updatedAt || post.createdAt || "";
+  const time = Date.parse(value);
+  return Number.isFinite(time) ? time : 0;
+}
+
+function comparePostDates(a: Post, b: Post): number {
+  const diff = postDateValue(b) - postDateValue(a);
+  if (diff !== 0) return diff;
+  return b.slug.localeCompare(a.slug);
 }
