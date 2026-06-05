@@ -252,6 +252,14 @@ nav .active,
   color: #514940;
 }
 
+.preview img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 18px auto;
+}
+
 .split {
   display: grid;
   grid-template-columns: minmax(300px, 0.8fr) minmax(360px, 1fr);

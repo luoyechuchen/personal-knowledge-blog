@@ -19,6 +19,11 @@ function renderInternalLinks(markdown: string, posts: Post[], base: string) {
   });
 }
 
+function renderLocalAssets(markdown: string, base: string) {
+  const normalizedBase = base.endsWith("/") ? base : `${base}/`;
+  return markdown.replace(/(!\[[^\]]*]\()\/uploads\//g, `$1${normalizedBase}uploads/`);
+}
+
 const md = new MarkdownIt({
   html: false,
   linkify: true,
@@ -27,5 +32,6 @@ const md = new MarkdownIt({
 
 export function renderMarkdown(markdown: string, posts: Post[], base = "/") {
   const linked = renderInternalLinks(markdown, posts, base);
-  return renderCallouts(md.render(linked));
+  const withAssets = renderLocalAssets(linked, base);
+  return renderCallouts(md.render(withAssets));
 }

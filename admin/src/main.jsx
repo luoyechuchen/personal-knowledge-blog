@@ -117,6 +117,17 @@ function sortRecentFirst(items) {
   return [...items].sort((a, b) => recentValue(b) - recentValue(a));
 }
 
+function renderPreviewLine(line, index) {
+  const image = line.match(/^!\[([^\]]*)]\(([^)]+)\)$/);
+  if (image) return <img key={index} src={image[2]} alt={image[1] || "图片"} />;
+  if (line.startsWith("# ")) return <h1 key={index}>{line.slice(2)}</h1>;
+  if (line.startsWith("## ")) return <h2 key={index}>{line.slice(3)}</h2>;
+  if (line.startsWith("> [!")) return null;
+  if (line.startsWith("> ")) return <blockquote key={index}>{line.slice(2)}</blockquote>;
+  if (!line.trim()) return <br key={index} />;
+  return <p key={index}>{line}</p>;
+}
+
 let columnDraftId = 0;
 
 function attachColumnDraftIds(columns) {
@@ -419,14 +430,7 @@ function PostEditor({ state, refresh, selectedSlug, setSelectedSlug, setPostsVie
         <textarea className="editor" value={post.markdown} onPaste={onPaste} onChange={(event) => update("markdown", event.target.value)} />
       ) : (
         <article className="preview">
-          {post.markdown.split("\n").map((line, index) => {
-            if (line.startsWith("# ")) return <h1 key={index}>{line.slice(2)}</h1>;
-            if (line.startsWith("## ")) return <h2 key={index}>{line.slice(3)}</h2>;
-            if (line.startsWith("> [!")) return null;
-            if (line.startsWith("> ")) return <blockquote key={index}>{line.slice(2)}</blockquote>;
-            if (!line.trim()) return <br key={index} />;
-            return <p key={index}>{line}</p>;
-          })}
+          {post.markdown.split("\n").map(renderPreviewLine)}
         </article>
       )}
     </main>

@@ -12,6 +12,7 @@ const isProduction = process.argv.includes("--production");
 const app = express();
 
 app.use(express.json({ limit: "12mb" }));
+app.use("/uploads", express.static(path.join(publicDir, "uploads")));
 
 await loadLocalEnv();
 
