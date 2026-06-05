@@ -691,6 +691,12 @@ function JsonListManager({ title, field, state, refresh, setSection }) {
     setMessage("已新增一行，记得保存");
   }
 
+  function removeRow(index) {
+    if (!confirm(`确认删除《${rows[index].title || "未命名条目"}》？`)) return;
+    setRows(rows.filter((_row, rowIndex) => rowIndex !== index));
+    setMessage("已删除，保存后生效");
+  }
+
   async function save() {
     setMessage("保存中...");
     await api(`/${field === "library" ? "api/library" : "api/archive"}`, {
@@ -719,6 +725,12 @@ function JsonListManager({ title, field, state, refresh, setSection }) {
       <div className="data-table">
         {rows.map((row, rowIndex) => (
           <div className="data-row" key={rowIndex}>
+            <div className="archive-row-header">
+              <strong>{row.title || "未命名条目"}</strong>
+              <div className="actions">
+                <button onClick={() => removeRow(rowIndex)}>删除</button>
+              </div>
+            </div>
             {keys.map((key) => (
               <TextInput key={key} label={key} value={row[key]} onChange={(value) => {
                 const next = [...rows];
