@@ -9,16 +9,12 @@ const featuredOrder = await getHomeFeaturedOrder();
 const newestPosts = sortByNewest(posts);
 const postBySlug = new Map(posts.map((post) => [post.slug, post]));
 const featuredPosts = featuredOrder.map((slug) => postBySlug.get(slug)).filter(Boolean);
-const featuredSet = new Set(featuredPosts.map((post) => post.slug));
-const featuredDisplay = featuredPosts.length > 0
-  ? [...featuredPosts, ...newestPosts.filter((post) => !featuredSet.has(post.slug))]
-  : newestPosts;
 const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
 ---
 
 <BaseLayout title="文章 / 个人博客" active="posts">
   <div class="section-heading">
-    <h1>最新文章</h1>
+    <h1 data-view-title>最新文章</h1>
     <div class="segmented" data-view-toggle>
       <a href={base} class="active" data-view-link="newest">最新</a>
       <a href={`${base}?sort=featured`} data-view-link="featured">推荐</a>
@@ -28,14 +24,18 @@ const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL :
     <PostList posts={newestPosts} columns={columns} />
   </div>
   <div data-view-panel="featured" hidden>
-    <PostList posts={featuredDisplay} columns={columns} />
+    {featuredPosts.length > 0
+      ? <PostList posts={featuredPosts} columns={columns} />
+      : <p class="empty-state">暂无推荐文章。</p>}
   </div>
   <script>
+    const title = document.querySelector("[data-view-title]");
     const links = [...document.querySelectorAll("[data-view-link]")];
     const panels = [...document.querySelectorAll("[data-view-panel]")];
 
     function setView(view, push = false) {
       const next = view === "featured" ? "featured" : "newest";
+      if (title) title.textContent = next === "featured" ? "推荐文章" : "最新文章";
       links.forEach((link) => link.classList.toggle("active", link.dataset.viewLink === next));
       panels.forEach((panel) => {
         panel.hidden = panel.dataset.viewPanel !== next;
