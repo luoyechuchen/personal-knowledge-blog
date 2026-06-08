@@ -1,5 +1,14 @@
 [
   {
+    "title": "怎么看待GitHub Copilot 正在转向按使用量计费，并取消年度套餐这件事？",
+    "author": "酱紫君",
+    "url": "https://www.zhihu.com/question/2032825585416811932/answer/2047326614241941256",
+    "source": "知乎回答",
+    "note": "这篇回答把 Copilot 计费变化放到 GitHub 基础设施压力和 AI Agent 工作流扩张的背景下看，重点讨论 Actions、开源协作、PR 噪音、供应链安全和平台成本结构的连锁变化，适合作为观察 AI 编程工具如何重塑开源生态的材料。",
+    "savedAt": "2026-06-08",
+    "slug": "zen-me-kan-daigithub-copilot-zheng-zai-zhuan-xiang-an-shi-yong-liang-ji-fei-bing-qu-xiao-nian-du-tao-can-zhe-jian-shi"
+  },
+  {
     "title": "Nothing to See Here: How to Say It When You Need to",
     "author": "Bruce Knuteson",
     "url": "https://ssrn.com/abstract=4619084",
