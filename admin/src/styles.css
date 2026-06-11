@@ -180,11 +180,20 @@ nav .active,
   font-size: 13px;
 }
 
-.git-notice pre {
+.git-notice .command-box {
+  width: 100%;
+  min-height: 92px;
+  border: 1px solid #e0c9b2;
+  border-radius: 6px;
+  background: #fffdf8;
+  color: var(--ink);
   margin: 0;
   white-space: pre-wrap;
+  padding: 8px 9px;
   font-size: 12px;
   line-height: 1.5;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .meta-grid {

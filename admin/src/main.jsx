@@ -155,41 +155,33 @@ function cleanColumns(columns) {
   return columns.map(({ _draftId, ...column }) => column);
 }
 
-async function copyText(text) {
-  if (navigator.clipboard?.writeText && window.isSecureContext) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return;
-    } catch {
-      // Fall back to a selected textarea below.
-    }
-  }
-
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "");
-  textarea.style.position = "fixed";
-  textarea.style.top = "-1000px";
-  textarea.style.left = "-1000px";
-  document.body.appendChild(textarea);
+function selectAndCopy(textarea) {
   textarea.focus();
   textarea.select();
   textarea.setSelectionRange(0, textarea.value.length);
   const ok = document.execCommand("copy");
-  document.body.removeChild(textarea);
   if (!ok) throw new Error("copy failed");
 }
 
 function GitPublishNotice({ visible, message }) {
   const [copyState, setCopyState] = useState("idle");
+  const commandsRef = useRef(null);
   if (!visible) return null;
 
   async function copyCommands() {
     try {
-      await copyText(publishCommands);
+      if (!commandsRef.current) throw new Error("missing command box");
+      selectAndCopy(commandsRef.current);
       setCopyState("copied");
     } catch {
-      setCopyState("failed");
+      try {
+        await navigator.clipboard?.writeText(publishCommands);
+        setCopyState("copied");
+      } catch {
+        commandsRef.current?.focus();
+        commandsRef.current?.select();
+        setCopyState("failed");
+      }
     }
     setTimeout(() => setCopyState("idle"), 1800);
   }
@@ -200,9 +192,15 @@ function GitPublishNotice({ visible, message }) {
         <strong>{message || "有未提交改动"}</strong>
         <span>本地内容已经变化。请另开一个新终端，复制下面命令运行后，公开网站才会更新。</span>
       </div>
-      <pre>{publishCommands}</pre>
+      <textarea
+        ref={commandsRef}
+        className="command-box"
+        readOnly
+        aria-label="提交命令"
+        value={publishCommands}
+      />
       <button onClick={copyCommands}>
-        {copyState === "copied" ? "已复制" : copyState === "failed" ? "复制失败，请手动选中" : "复制提交命令"}
+        {copyState === "copied" ? "已复制" : copyState === "failed" ? "复制失败，请按 ⌘C" : "复制提交命令"}
       </button>
     </div>
   );
