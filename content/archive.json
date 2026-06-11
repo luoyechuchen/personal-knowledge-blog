@@ -1,5 +1,23 @@
 [
   {
+    "title": "中国的“工业克苏鲁”能持续多久？",
+    "author": "栗悟饭与龟派气功",
+    "url": "https://www.zhihu.com/question/1964845461723670265/answer/2044169000804995881",
+    "source": "知乎回答",
+    "note": "这篇回答把“工业克苏鲁”放在廉价电力、自动化产线、工业机器人、AI 算力和庞大工业集群的闭环里讨论，核心关注生产力底座变化如何重塑成本结构、全球产业竞争和未来社会分配想象。",
+    "savedAt": "2026-06-11",
+    "slug": "zhong-guo-de-gong-ye-ke-su-lu-neng-chi-xu-duo-jiu"
+  },
+  {
+    "title": "LLM Coding Plan 经济学——厂商哭穷你也信？",
+    "author": "chengxd 达达",
+    "url": "https://zhuanlan.zhihu.com/p/2027426625495601507",
+    "source": "知乎专栏",
+    "note": "这篇文章从 LLM Coding Plan 的计费变化和厂商成本叙事切入，讨论 AI 编程工具在 token、算力、订阅制与用户锁定之间的经济逻辑；适合作为观察大模型编程产品定价、平台议价能力和开发者工具商业模式的材料。",
+    "savedAt": "2026-06-11",
+    "slug": "llm-coding-plan-jing-ji-xue-chang-shang-ku-qiong-ni-ye-xin"
+  },
+  {
     "title": "怎么看待GitHub Copilot 正在转向按使用量计费，并取消年度套餐这件事？",
     "author": "酱紫君",
     "url": "https://www.zhihu.com/question/2032825585416811932/answer/2047326614241941256",
