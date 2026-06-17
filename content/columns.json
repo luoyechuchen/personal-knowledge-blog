@@ -1,5 +1,10 @@
 [
   {
+    "name": "思考与交流",
+    "slug": "thinkingandcommunication",
+    "description": "关于人应该如何认识世界"
+  },
+  {
     "name": "语言",
     "slug": "language",
     "description": "关于语言的原理与习得"
