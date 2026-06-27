@@ -1,5 +1,14 @@
 [
   {
+    "title": "ChatGPT 中的计划任务",
+    "author": "OpenAI",
+    "url": "https://help.openai.com/zh-hans-cn/articles/10291617-scheduled-tasks-in-chatgpt?utm_source=chatgpt.com",
+    "source": "OpenAI Help Center",
+    "note": "这篇帮助文档介绍 ChatGPT 计划任务的创建、查看、编辑、通知设置和使用限制，也说明监控任务、任务数量上限、应用权限，以及它与 Codex 自动化的区别；适合作为理解 ChatGPT 主动提醒和定期检查能力的官方参考。",
+    "savedAt": "2026-06-27",
+    "slug": "chatgpt-zhong-de-ji-hua-ren-wu"
+  },
+  {
     "title": "中国的“工业克苏鲁”能持续多久？",
     "author": "栗悟饭与龟派气功",
     "url": "https://www.zhihu.com/question/1964845461723670265/answer/2044169000804995881",
